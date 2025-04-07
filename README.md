@@ -1,5 +1,5 @@
 # Obsidian Zhongwen Reader Plugin
-Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://obsidian.md) that makes it easy to read Chinese text and build your vocabulary, all from within your notes. 
+Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://obsidian.md) that makes it easy to read Chinese text and build your vocabulary, all from within your notes. Originally based on obsidian-sample-plugin by the Obsidian team.
 
 # ✨ Features
 - 🔍 Hover lookup: When this plugin is enabled, instantly see simplified, traditional, pinyin, and definitions (from CC-CEDICT dictionary) in a tooltip popup when hovering over Chinese words in your markdown editor or preview mode. 
@@ -14,12 +14,17 @@ Saved vocab is stored in .obsidian/plugins/zhongwen-reader/vocab.json.
 Each entry includes:
 ```json
 {
-  "simplified": "妈妈",
-  "traditional": "媽媽",
-  "pinyin": "mā ma",
-  "definitions": ["mom; mother"],
-  "addedAt": "2025-04-06T12:34:56.789Z",
-  "exampleSentences": ["我爱我的妈妈。"]
+  "simplified": "弯月",
+  "traditional": "彎月",
+  "pinyin": "wan1 yue4",
+  "definitions": [
+    "crescent moon",
+    "crescent shape"
+  ],
+  "addedAt": "2025-04-07T17:29:18.497Z",
+  "exampleSentences": [
+    "弯月相同弯刀刺上林端。"
+  ]
 }
 ```
 # 🛠️ Usage

@@ -430,7 +430,6 @@ export default class MyPlugin extends Plugin {
 		this.tooltipEl.style.display = "none";
 	}
 	private async addToVocab(word: string, entries: CedictEntry[]) {
-		console.log('called addToVocab!')
 		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
 	
 		let list: VocabEntry[] = [];
@@ -587,7 +586,6 @@ export default class MyPlugin extends Plugin {
 	}
 	
 	public scrollToWordInActiveFile(word: string) {
-		console.log(`scrolling to ${word}`)
 		const view = this.currentMarkdownView;
 		const mode = view.getMode();
 
@@ -613,13 +611,10 @@ export default class MyPlugin extends Plugin {
 			lines = scroller.querySelectorAll(
 				".el-p, .el-h1, .el-h2, .el-h3, .el-li, .el-blockquote, .el-table"
 			);
-			console.log(lines)
 		}
 		
 		for (const line of lines) {
 			if (line.textContent?.includes(word)) {
-				console.log("Found match!");
-				console.log("LINE:", line.textContent);
 				(line as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
 	
 				// Highlight the line briefly, delayed by 100 to allow DOM to scroll first
