@@ -1,0 +1,789 @@
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView } from 'obsidian';
+
+const VIEW_TYPE_VOCAB_SIDEBAR = "vocab-sidebar";
+
+// This defines the structure for dictionary entries
+interface CedictEntry {
+	traditional: string;
+	simplified: string;
+	pinyin: string;
+	definitions: string[];
+  }
+
+// Remember to rename these classes and interfaces!
+
+interface MyPluginSettings {
+	saveSentences: boolean;
+}
+
+interface VocabEntry {
+	simplified: string;
+	traditional: string;
+	pinyin: string;
+	definitions: string[];
+	addedAt: string;
+	exampleSentences?: string[]; // optional
+};
+
+const DEFAULT_SETTINGS: MyPluginSettings = {
+	saveSentences: false
+}
+
+export default class MyPlugin extends Plugin {
+	settings: MyPluginSettings;
+	private cedictMap: Map<string, CedictEntry[]> = new Map();
+	private activeHighlight: HTMLElement | null = null;
+	private activeWord: string | null = null;
+	private activeEntries: CedictEntry[] | null = null;
+	private hoverBoxEl: HTMLDivElement | null = null;
+	private tooltipEl: HTMLDivElement | null = null;
+	public refreshVocabSidebar: (() => void) | null = null;
+
+	// not update vocab list on every keystroke
+	private refreshTimer: number | null = null;
+
+	// save currentMarkdownView so vocab list doesnt disappear when i click on vocab sidebar
+	public currentMarkdownView: MarkdownView | null = null;
+
+	// For if the user wants to store the current sentence as an example
+	private activeExampleSentence: string | null = null;
+
+
+	private hoverHandler: (e: MouseEvent) => void;	
+
+	async onload() {
+		await this.loadSettings();
+	
+		// Load dictionary
+		const data = await this.loadDictionaryFile(`.obsidian/plugins/${this.manifest.id}/cedict_ts.u8`);
+    	this.loadCedictFromText(data);
+		console.log("Cedict loaded.")
+
+		// Hover box
+
+		// Styles
+		const style = document.createElement("style");
+		style.id = "cedict-hover-style";
+		style.innerText = `
+		.cedict-hover-box {
+			position: absolute;
+			z-index: 0 !important;
+			background-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.3);
+			pointer-events: none;
+			border-radius: 3px;
+			transition: all 0.05s ease;
+		}
+		.cedict-line-hover {
+			background-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.3);
+			transition: background-color 0.3s ease;
+		}
+		.cm-line{
+			transition: all 0.5s ease;
+		}
+
+		.vocab-entry {
+			margin-bottom: 1rem;
+			padding-bottom: 0.5rem;
+			border-bottom: 1px solid var(--background-modifier-border);
+			cursor: pointer;
+		}
+	
+		.vocab-word {
+			font-weight: bold;
+			font-size: 1.1em;
+		}
+	
+		.vocab-pinyin {
+			font-style: italic;
+			color: var(--text-muted);
+			margin-top: 2px;
+		}
+	
+		.vocab-defs {
+			margin-top: 4px;
+			color: var(--text-normal);
+			font-size: 0.95em;
+			line-height: 1.4;
+		}
+		`;
+		document.head.appendChild(style);
+
+		this.hoverBoxEl = document.createElement("div");
+		this.hoverBoxEl.className = "cedict-hover-box";
+		document.body.appendChild(this.hoverBoxEl);
+
+		// Tooltip
+		this.tooltipEl = document.createElement("div");
+		this.tooltipEl.style.position = "absolute";
+		this.tooltipEl.style.padding = "6px 10px";
+		this.tooltipEl.style.background = "var(--background-secondary)";
+		this.tooltipEl.style.color = "var(--text-normal)";
+		this.tooltipEl.style.border = "1px solid var(--background-modifier-border)";
+		this.tooltipEl.style.borderRadius = "6px";
+		this.tooltipEl.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
+		this.tooltipEl.style.whiteSpace = "pre-line";
+		this.tooltipEl.style.zIndex = "10000";
+		this.tooltipEl.style.pointerEvents = "none";
+		this.tooltipEl.style.display = "none";
+		document.body.appendChild(this.tooltipEl);
+
+		// This adds a settings tab so the user can configure various aspects of the plugin
+		this.addSettingTab(new SampleSettingTab(this.app, this));	
+
+		this.hoverHandler = this.hoverHandlerChars.bind(this);
+		document.addEventListener("mousemove", this.hoverHandler);
+
+		this.registerDomEvent(document, "keydown", (event: KeyboardEvent) => {
+			if (event.key.toLowerCase() === "s" && this.activeWord && this.activeEntries) {
+				this.addToVocab(this.activeWord, this.activeEntries);
+			}
+		});		
+
+		this.addCommand({
+			id: "export-vocab-flashcards",
+			name: "Export Vocab to Flashcards",
+			callback: () => this.exportVocabToFlashcards()
+		});
+
+		this.registerView(
+			VIEW_TYPE_VOCAB_SIDEBAR,
+			(leaf) => new VocabSidebarView(leaf, this)
+		);
+		
+		this.addRibbonIcon("book-open", "Open Vocab Sidebar", async () => {
+			await this.activateView();
+		});
+		await this.activateView(); // TODO: make sure this always opens in the right sidebar
+
+		// Change vocab sidebar when I change leaf
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", () => {
+				// only change currMDview if new view is also MD, otherwise currentMarkdownView becomes null when i click on sidebar
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (view) {
+					this.currentMarkdownView = view;
+					this.triggerSidebarRefresh();
+				}
+			})
+		);
+		
+		// Change vocab sidebar when I edit leaf
+		this.registerEvent(
+			this.app.workspace.on("editor-change", () => {
+				if (this.refreshTimer) window.clearTimeout(this.refreshTimer);
+				this.refreshTimer = window.setTimeout(() => {
+					const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+					if (view) {
+						this.currentMarkdownView = view;
+						this.triggerSidebarRefresh();
+					}
+				}, 300); // 300ms delay after last edit
+			})
+		);
+		this.registerEvent(
+			this.app.workspace.on("file-open", () => {
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (view) {
+					this.currentMarkdownView = view;
+					this.triggerSidebarRefresh();
+				}
+			})
+		);
+	}
+
+	onunload() {
+		document.removeEventListener("mousemove", this.hoverHandler);
+		if (this.activeHighlight) {
+			const parent = this.activeHighlight.parentNode;
+			if (parent) {
+				parent.replaceChild(
+					document.createTextNode(this.activeHighlight.innerText),
+					this.activeHighlight
+				);
+			}
+			this.activeHighlight = null;
+		}
+		if (this.hoverBoxEl) {
+			this.hoverBoxEl.remove();
+			this.hoverBoxEl = null;
+		}
+		
+		if (this.tooltipEl) {
+			this.tooltipEl.style.display = "none"; // just to be safe
+			this.tooltipEl.remove();
+			this.tooltipEl = null;
+		}
+
+		// Clean up styles
+		const styleEl = document.getElementById("cedict-hover-style");
+		if (styleEl) styleEl.remove();	
+	}
+
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings);
+	}
+
+	private async loadDictionaryFile(fileName: string): Promise<string> {
+		const arrayBuffer = await this.app.vault.adapter.readBinary(fileName);
+		const decoder = new TextDecoder("utf-8");
+		return decoder.decode(arrayBuffer);
+	}
+	private parseCedictLine(line: string): CedictEntry | null {
+		const match = line.match(/^(\S+)\s+(\S+)\s+\[(.+?)\]\s+\/(.+)\//);
+		if (!match) return null;
+	
+		const [, trad, simp, pinyin, defs] = match;
+		return {
+		  traditional: trad,
+		  simplified: simp,
+		  pinyin,
+		  definitions: defs.split('/')
+		};
+	  }
+	
+	private loadCedictFromText(cedictText: string) {
+	const lines = cedictText.split('\n');
+		for (const line of lines) {
+			if (line.startsWith('#') || line.trim() === '') continue;
+			const entry = this.parseCedictLine(line);
+			if (entry) {
+				[entry.traditional, entry.simplified].forEach((form) => {
+					if (!this.cedictMap.has(form)) this.cedictMap.set(form, []);
+					this.cedictMap.get(form)!.push(entry);
+				});
+			}
+		}
+	};
+
+	private hoverHandlerChars = (event: MouseEvent) => {
+		const el = event.target as HTMLElement;
+		const isEditLine = el.closest(".cm-line");
+		const isPreviewBlock = el.closest(".markdown-preview-view")?.querySelector(".markdown-preview-sizer");
+		const isPreviewTarget = el.closest(".el-p, .el-h1, .el-h2, .el-h3, .el-li, .el-blockquote, .el-table");
+
+		if (!isEditLine && !(isPreviewBlock && isPreviewTarget)) {
+			this.hideHoverBox();
+			this.hideTooltip();
+			return;
+		}
+			
+		const range = document.caretRangeFromPoint(event.clientX, event.clientY);
+		if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) {
+			this.hideHoverBox();
+			this.hideTooltip();
+			this.activeHighlight = null;
+			this.activeWord = null;
+			this.activeEntries = null;
+			return;
+		}
+	
+		const textNode = range.startContainer as Text;
+		const offset = range.startOffset;
+		const text = textNode.textContent ?? "";
+	
+		// out-of-bounds
+		if (offset < 0 || offset >= text.length) {
+			this.hideHoverBox();
+			return;
+		}
+
+		// Only proceed if the hovered character is Chinese
+		const chineseChar = /[\u4e00-\u9fff]/;
+		if (!chineseChar.test(text[offset])) {
+			this.hideHoverBox();
+			return;
+		}
+	
+		// Only try to match a word from the hovered char forward
+		const match = this.getForwardMatchedWord(text, offset);
+		if (!match) {
+			this.hideHoverBox();
+			return;
+		}
+
+		const start = offset;
+		const end = Math.min(match.end, textNode.length); // clamps safely
+
+		// Highlight matched word
+		const rangeForWord = document.createRange();
+		rangeForWord.setStart(textNode, start);
+		rangeForWord.setEnd(textNode, end);
+	
+		const rect = rangeForWord.getBoundingClientRect();
+	
+		if (this.hoverBoxEl) {
+			this.hoverBoxEl.style.left = `${rect.left + window.scrollX}px`;
+			this.hoverBoxEl.style.top = `${rect.top + window.scrollY}px`;
+			this.hoverBoxEl.style.width = `${rect.width}px`;
+			this.hoverBoxEl.style.height = `${rect.height}px`;
+			this.hoverBoxEl.style.display = "block";
+		}
+
+		if (this.settings.saveSentences) {
+			const sentence = this.extractSentenceFromTextAtOffset(text, offset, match.word);
+			this.activeExampleSentence = sentence;
+		}
+
+		// Tooltip
+		this.showTooltipForWord(match.word, rect.left + window.scrollX, rect.top + window.scrollY);
+	};
+	
+	private hideHoverBox() {
+		if (this.hoverBoxEl) {
+			this.hoverBoxEl.style.display = "none";
+		}
+	}
+	
+	private getForwardMatchedWord(text: string, offset: number): { word: string; end: number } | null {
+		const maxWordLen = 5;
+		const substr = text.slice(offset, offset + maxWordLen);
+	
+		// Try longest to shortest
+		for (let len = maxWordLen; len > 0; len--) {
+			const candidate = substr.slice(0, len);
+			if (this.cedictMap.has(candidate)) {
+				return { word: candidate, end: offset + len };
+			}
+		}
+
+		return null;
+	};	
+	  
+	
+	private showTooltipForWord(word: string, x: number, y: number) {
+		if (!this.tooltipEl) return;
+	
+		const entries = this.cedictMap.get(word);
+		if (!entries || entries.length === 0) {
+			this.tooltipEl.style.display = "none";
+			return;
+		}
+
+		// Remove duplicate entries - do I need this? 
+		const seen = new Set<string>();
+		const uniqueEntries = entries.filter(entry => {
+			const id = `${entry.traditional}-${entry.simplified}-${entry.pinyin}-${entry.definitions.join(",")}`;
+			if (seen.has(id)) return false;
+			seen.add(id);
+			return true;
+		});
+
+		this.activeWord = word;
+		this.activeEntries = uniqueEntries;
+
+		const text = uniqueEntries.map(entry => 
+			`${entry.simplified} ${entry.simplified !== entry.traditional? entry.traditional: ""} (${this.processPinyin(entry.pinyin)})\n${entry.definitions.join('; ')}`
+		).join('\n\n');
+
+		this.tooltipEl.innerText = text;
+		if (!this.hoverBoxEl) return; // Feel like I dont need this? 
+		const hoverRect = this.hoverBoxEl.getBoundingClientRect();
+		this.tooltipEl.style.left = `${hoverRect.left + window.scrollX}px`;
+		this.tooltipEl.style.top = `${hoverRect.bottom + window.scrollY + 4}px`; // 4px padding
+
+		this.tooltipEl.style.display = "block";
+	}
+
+	public processPinyin(pinyin: string): string {
+		const toneMap: Record<string, string[]> = {
+			"a": ["ā", "á", "ǎ", "à", "a"],
+			"e": ["ē", "é", "ě", "è", "e"],
+			"i": ["ī", "í", "ǐ", "ì", "i"],
+			"o": ["ō", "ó", "ǒ", "ò", "o"],
+			"u": ["ū", "ú", "ǔ", "ù", "u"],
+			"ü": ["ǖ", "ǘ", "ǚ", "ǜ", "ü"]
+		};
+	
+		const vowels = ["a", "o", "e", "i", "u", "ü"];
+	
+		// Process each syllable (split on space)
+		return pinyin.split(" ").map(syllable => {
+			const tone = parseInt(syllable[syllable.length - 1]);
+			if (tone < 1 || tone > 5) return syllable; // skip if no valid tone number
+	
+			let core = syllable.slice(0, -1); // remove tone number
+			let vowelToReplace = "";
+	
+			// find correct vowel to replace (priority order)
+			for (const v of vowels) {
+				if (core.includes(v)) {
+					vowelToReplace = v;
+					break;
+				}
+			}
+	
+			if (!vowelToReplace) return syllable; // fallback: no vowel to modify
+	
+			const accented = toneMap[vowelToReplace][tone - 1];
+			const regex = new RegExp(vowelToReplace + "(?!.*" + vowelToReplace + ")", "g"); // replace LAST occurrence
+	
+			core = core.replace(regex, accented);
+			return core;
+		}).join(" ");
+	}
+	
+	private hideTooltip() {
+		this.tooltipEl.style.display = "none";
+	}
+	private async addToVocab(word: string, entries: CedictEntry[]) {
+		console.log('called addToVocab!')
+		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
+	
+		let list: VocabEntry[] = [];
+	
+		try {
+			const file = await this.app.vault.adapter.read(path);
+			list = JSON.parse(file);
+		} catch {
+			list = [];
+		}
+	
+		const newSentence = (this.activeExampleSentence?.trim() === word ? "" : this.activeExampleSentence?.trim()) || "";
+		// I'm supposed to have a check earlier that turns "word" into "" but for some reason not working so I have ^
+		// Do i need the "" fallback?
+		const existingEntry = list.find(e => e.simplified === word);
+		if (existingEntry) {
+			// If sentence saving is on and we have a sentence...
+			if (this.settings.saveSentences && newSentence) {
+				if (!existingEntry.exampleSentences) existingEntry.exampleSentences = [];
+				
+				// Avoid duplicates
+				if (!existingEntry.exampleSentences.includes(newSentence)) {
+					existingEntry.exampleSentences.push(newSentence);
+					await this.app.vault.adapter.write(path, JSON.stringify(list, null, 2));
+					new Notice(`Added new sentence to ${word}.`);
+				} else {
+					new Notice(`${word} is already in your vocab list.`);
+				}
+			} else {
+				new Notice(`${word} is already in your vocab list.`);
+			}
+	
+			this.activeExampleSentence = null;
+			this.refreshVocabSidebar?.();
+			return;
+		}
+
+		// Merge definitions and choose a rep simplified/traditional
+		const allDefs = entries.flatMap(e => e.definitions);
+		const uniqueDefs = Array.from(new Set(allDefs)); // remove duplicates
+	
+		const rep = entries[0]; // representative entry (usually fine but the pinyin can change so i should handle that in the future)
+	
+		const newEntry: VocabEntry = {
+			simplified: rep.simplified,
+			traditional: rep.traditional,
+			pinyin: rep.pinyin, 
+			definitions: uniqueDefs,
+			addedAt: new Date().toISOString(),
+			...(this.settings.saveSentences && this.activeExampleSentence
+				? { exampleSentences: [this.activeExampleSentence] }
+				: {})
+		};
+	
+		list.push(newEntry);
+	
+		await this.app.vault.adapter.write(path, JSON.stringify(list, null, 2));
+		new Notice(`Added ${word} to vocab list!`);
+
+		this.refreshVocabSidebar?.();
+		this.activeExampleSentence = null;
+	}
+
+	private async exportVocabToFlashcards() {
+		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
+		const outputPath = `Vocab Deck.md`; // You could also use a folder like "Flashcards/Vocab.md"
+	
+		let list: {
+			simplified: string;
+			traditional: string;
+			definitions: string[];
+			addedAt: string;
+		}[] = [];
+	
+		try {
+			const file = await this.app.vault.adapter.read(path);
+			list = JSON.parse(file);
+		} catch (e) {
+			new Notice("No vocab list found.");
+			return;
+		}
+	
+		const lines: string[] = list.map(entry => {
+			const defs = entry.definitions.join("; ");
+			return `${entry.simplified}::${defs}`;
+		});
+	
+		const content = `#ChineseVocab\n\n${lines.join("\n\n")}`;
+	
+		await this.app.vault.adapter.write(outputPath, content);
+	
+		new Notice("Exported vocab to flashcard deck!");
+	}	
+
+	private extractSentenceFromTextAtOffset(text: string, offset: number, word: string): string {
+		if (!this.settings.saveSentences) return "";
+		// Find punctuation boundaries around the word
+		const punctuation = /[。！？!?]/;
+	
+		let start = offset;
+		while (start > 0 && !punctuation.test(text[start - 1])) {
+			start--;
+		}
+	
+		let end = offset;
+		while (end < text.length && !punctuation.test(text[end])) {
+			end++;
+		}
+		if (end < text.length) end++; // include punctuation
+	
+		const sentence = text.slice(start, end).trim();
+	
+		// fallback to entire line if sentence is empty or doesn’t contain the word
+		if (!sentence || !sentence.includes(word)) {
+			if (line.trim() === word) return ""; // don't save lonely word lines
+			const line = text.split('\n').find(l => l.includes(word)) ?? text;
+			return line.trim();
+		}
+	
+		return sentence;
+	}	
+
+	async activateView() {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_VOCAB_SIDEBAR);
+		if (leaves.length === 0) {
+			await this.app.workspace.getRightLeaf(false).setViewState({
+				type: VIEW_TYPE_VOCAB_SIDEBAR,
+				active: true
+			});
+		}
+		this.app.workspace.revealLeaf(
+			this.app.workspace.getLeavesOfType(VIEW_TYPE_VOCAB_SIDEBAR)[0]
+		);
+	}
+
+	// needs to be accessed by VocabSidebarView
+	public async loadVocabList(): Promise<VocabEntryFlat[]> {
+		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
+		try {
+			const file = await this.app.vault.adapter.read(path);
+			return JSON.parse(file);
+		} catch {
+			return [];
+		}
+	}
+
+	// Do this so sidebar doesnt get double rendered when I switch leaves
+	public triggerSidebarRefresh() {
+		if (this.refreshTimer) window.clearTimeout(this.refreshTimer);
+
+		this.refreshTimer = window.setTimeout(() => {
+			this.refreshVocabSidebar?.();
+		}, 100);
+	}
+	
+	public scrollToWordInActiveFile(word: string) {
+		console.log(`scrolling to ${word}`)
+		const view = this.currentMarkdownView;
+		const mode = view.getMode();
+
+		if (!view) {
+			console.warn("No active Markdown view");
+			return;
+		}
+	
+		let scroller: HTMLElement | null;
+
+		if (mode === "source") {
+			scroller = view.containerEl.querySelector(".cm-scroller");
+		} else {
+			scroller = view.containerEl.querySelector(".markdown-preview-sizer");
+		}
+
+		if (!scroller) return;
+	
+		let lines: NodeListOf<HTMLElement>;
+		if (mode === "source") {
+			lines = scroller.querySelectorAll(".cm-line");
+		} else {
+			lines = scroller.querySelectorAll(
+				".el-p, .el-h1, .el-h2, .el-h3, .el-li, .el-blockquote, .el-table"
+			);
+			console.log(lines)
+		}
+		
+		for (const line of lines) {
+			if (line.textContent?.includes(word)) {
+				console.log("Found match!");
+				console.log("LINE:", line.textContent);
+				(line as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+	
+				// Highlight the line briefly, delayed by 100 to allow DOM to scroll first
+				setTimeout(() => {
+					line.classList.add("cedict-line-hover");
+				
+					setTimeout(() => {
+						line.classList.remove("cedict-line-hover");
+					}, 5000);
+				}, 100);
+	
+				// Restore focus
+				// setTimeout(() => view.editor?.focus(), 100);
+	
+				break;
+			}
+		}
+	}
+}
+
+class VocabSidebarView extends ItemView {
+	plugin: MyPlugin;
+
+	constructor(leaf: WorkspaceLeaf, plugin: MyPlugin) {
+		super(leaf);
+		this.plugin = plugin;
+	}
+
+	getViewType() {
+		return VIEW_TYPE_VOCAB_SIDEBAR;
+	}
+
+	getDisplayText() {
+		return "Vocabulary";
+	}
+
+	getIcon(): string {
+		return "book-open"; 
+	}
+
+	async onOpen() {
+		// const container = this.containerEl;
+		// const content = container.querySelector(".view-content") ?? container.children[1];
+		// content.empty();
+		const container = this.containerEl;
+		container.querySelectorAll(".vocab-entry").forEach(el => el.remove());
+
+	
+		// Register the refresh callback
+		this.plugin.refreshVocabSidebar = () => this.renderSidebar();
+	
+		await this.waitForView();
+		await this.renderSidebar();	
+	}
+	async onClose() {
+		this.plugin.refreshVocabSidebar = null;
+	}
+	async waitForView() {
+		let retries = 10;
+		while (!this.plugin.currentMarkdownView && retries-- > 0) {
+			await new Promise(resolve => setTimeout(resolve, 100));
+		}
+	}
+	
+	async renderSidebar() {
+		const container = this.containerEl.children[1];
+		container.empty();
+	
+		const vocabList = await this.plugin.loadVocabList();
+
+		const view = this.plugin.currentMarkdownView;
+		const currentFileText = view?.editor
+			? view.editor.getValue()
+			: view?.contentEl.textContent ?? "";
+
+		const matchingVocab = vocabList.filter(entry =>
+			currentFileText.includes(entry.simplified)
+		);
+
+		container.createEl("h3", {
+			text: "Vocab in this note",
+			cls: "vocab-heading"
+		});
+		// this.containerEl.createEl("h3", {
+		// 	text: "Vocab in this note",
+		// 	cls: "vocab-heading"
+		// });
+
+		if (!matchingVocab.length) {
+			container.createEl("p", { text: "No vocab yet." });
+			return;
+		}
+	
+		for (const entry of matchingVocab) {
+			const wrapper = container.createEl("div", { cls: "vocab-entry" });
+	
+			// Title: simplified + traditional
+			wrapper.createEl("div", {
+				text: `${entry.simplified} ${entry.simplified !== entry.traditional ? "(" + entry.traditional + ")": ""}`,
+				cls: 'vocab-word'
+			});
+	
+			// Pinyin
+			wrapper.createEl("div", {
+				text: this.plugin.processPinyin?.(entry.pinyin ?? ""),
+				cls: 'vocab-pinyin'
+			});
+	
+			// Definitions
+			wrapper.createEl("div", {
+				text: entry.definitions.join(";\n "),
+				cls: 'vocab-defs'
+			});
+	
+			// Divider
+			// wrapper.createEl("hr");
+
+			// Make wrapper clickable
+			wrapper.style.cursor = "pointer";
+			wrapper.onclick = () => {
+				this.plugin.scrollToWordInActiveFile(entry.simplified);
+			};
+		}
+	}	
+}
+
+
+class SampleModal extends Modal {
+	constructor(app: App) {
+		super(app);
+	}
+
+	onOpen() {
+		const {contentEl} = this;
+		contentEl.setText('Woah!');
+	}
+
+	onClose() {
+		const {contentEl} = this;
+		contentEl.empty();
+	}
+}
+
+class SampleSettingTab extends PluginSettingTab {
+	plugin: MyPlugin;
+
+	constructor(app: App, plugin: MyPlugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	display(): void {
+		const {containerEl} = this;
+
+		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName("Save example sentences")
+			.setDesc("When saving a vocab word, also store the sentence it appears in.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.saveSentences)
+				.onChange(async (value) => {
+					this.plugin.settings.saveSentences = value;
+					await this.plugin.saveSettings();
+		}));
+	}
+}
