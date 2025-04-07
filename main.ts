@@ -57,9 +57,6 @@ export default class MyPlugin extends Plugin {
 		// Load dictionary
 		const data = await this.loadDictionaryFile(`.obsidian/plugins/${this.manifest.id}/cedict_ts.u8`);
     	this.loadCedictFromText(data);
-		console.log("Cedict loaded.")
-
-		// Hover box
 
 		// Styles
 		const style = document.createElement("style");
