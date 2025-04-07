@@ -497,7 +497,7 @@ export default class MyPlugin extends Plugin {
 
 	private async exportVocabToFlashcards() {
 		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
-		const outputPath = `Vocab Deck.md`; // You could also use a folder like "Flashcards/Vocab.md"
+		const outputPath = `Obsidian-Zhongwen-Reader-Vocab-Deck.md`; 
 	
 		let list: {
 			simplified: string;
