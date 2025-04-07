@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf } from 'obsidian';
 
 const VIEW_TYPE_VOCAB_SIDEBAR = "vocab-sidebar";
 
@@ -12,7 +12,7 @@ interface CedictEntry {
 
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
+interface ZhongwenReaderPluginSettings {
 	saveSentences: boolean;
 }
 
@@ -25,12 +25,12 @@ interface VocabEntry {
 	exampleSentences?: string[]; // optional
 };
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: ZhongwenReaderPluginSettings = {
 	saveSentences: false
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class ZhongwenReaderPlugin extends Plugin {
+	settings: ZhongwenReaderPluginSettings;
 	private cedictMap: Map<string, CedictEntry[]> = new Map();
 	private activeHighlight: HTMLElement | null = null;
 	private activeWord: string | null = null;
@@ -125,7 +125,7 @@ export default class MyPlugin extends Plugin {
 		document.body.appendChild(this.tooltipEl);
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));	
+		this.addSettingTab(new ZhongwenReaderSettingTab(this.app, this));	
 
 		this.hoverHandler = this.hoverHandlerChars.bind(this);
 		document.addEventListener("mousemove", this.hoverHandler);
@@ -635,9 +635,9 @@ export default class MyPlugin extends Plugin {
 }
 
 class VocabSidebarView extends ItemView {
-	plugin: MyPlugin;
+	plugin: ZhongwenReaderPlugin;
 
-	constructor(leaf: WorkspaceLeaf, plugin: MyPlugin) {
+	constructor(leaf: WorkspaceLeaf, plugin: ZhongwenReaderPlugin) {
 		super(leaf);
 		this.plugin = plugin;
 	}
@@ -740,27 +740,10 @@ class VocabSidebarView extends ItemView {
 	}	
 }
 
+class ZhongwenReaderSettingTab extends PluginSettingTab {
+	plugin: ZhongwenReaderPlugin;
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: ZhongwenReaderPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
