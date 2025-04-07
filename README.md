@@ -8,6 +8,8 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://o
 - 📋 Sidebar view: See a list of vocab words used in the current note and navigate to the word within the note with a click
 - 🗃️ Spaced repetitions deck generation: Generate flashcards for the obsidian spaced repetitions plugin from your vocab list.
 
+> ⚠️ **Warning:** As of now, the example sentences are saved into vocab.json but are not used in flashcard generation or shown in the plugin sidebar. Upcoming features will make use of them.
+
 # 🧾 Data & Storage
 Installing the plugin stores the CC-CEDICT dictionary (https://cc-cedict.org/wiki/) as a .u8 file with path .obsidian/plugins/zhongwen-reader/cedict_ts.u8.
 Saved vocab is stored in .obsidian/plugins/zhongwen-reader/vocab.json.
