@@ -74,33 +74,42 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			background-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.3);
 			transition: background-color 0.3s ease;
 		}
-		.cm-line{
+		.cm-line {
 			transition: all 0.5s ease;
 		}
-
 		.vocab-entry {
 			margin-bottom: 1rem;
 			padding-bottom: 0.5rem;
 			border-bottom: 1px solid var(--background-modifier-border);
 			cursor: pointer;
 		}
-	
 		.vocab-word {
 			font-weight: bold;
 			font-size: 1.1em;
 		}
-	
 		.vocab-pinyin {
 			font-style: italic;
 			color: var(--text-muted);
 			margin-top: 2px;
 		}
-	
 		.vocab-defs {
 			margin-top: 4px;
 			color: var(--text-normal);
 			font-size: 0.95em;
 			line-height: 1.4;
+		}
+		.cedict-tooltip {
+			position: absolute;
+			padding: 6px 10px;
+			background: var(--background-secondary);
+			color: var(--text-normal);
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 6px;
+			box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+			white-space: pre-line;
+			z-index: 10000;
+			pointer-events: none;
+			display: none;
 		}
 		`;
 		document.head.appendChild(style);
@@ -111,18 +120,9 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 		// Tooltip
 		this.tooltipEl = document.createElement("div");
-		this.tooltipEl.style.position = "absolute";
-		this.tooltipEl.style.padding = "6px 10px";
-		this.tooltipEl.style.background = "var(--background-secondary)";
-		this.tooltipEl.style.color = "var(--text-normal)";
-		this.tooltipEl.style.border = "1px solid var(--background-modifier-border)";
-		this.tooltipEl.style.borderRadius = "6px";
-		this.tooltipEl.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
-		this.tooltipEl.style.whiteSpace = "pre-line";
-		this.tooltipEl.style.zIndex = "10000";
-		this.tooltipEl.style.pointerEvents = "none";
-		this.tooltipEl.style.display = "none";
+		this.tooltipEl.className = "cedict-tooltip";
 		document.body.appendChild(this.tooltipEl);
+
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new ZhongwenReaderSettingTab(this.app, this));	
@@ -426,7 +426,9 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 	
 	private hideTooltip() {
-		this.tooltipEl.style.display = "none";
+		if (this.tooltipEl) {
+			this.tooltipEl.style.display = "none";
+		}
 	}
 	private async addToVocab(word: string, entries: CedictEntry[]) {
 		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
@@ -543,8 +545,8 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	
 		// fallback to entire line if sentence is empty or doesn’t contain the word
 		if (!sentence || !sentence.includes(word)) {
-			if (line.trim() === word) return ""; // don't save lonely word lines
 			const line = text.split('\n').find(l => l.includes(word)) ?? text;
+			if (line.trim() === word) return ""; // don't save lonely word lines
 			return line.trim();
 		}
 	
@@ -565,7 +567,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 
 	// needs to be accessed by VocabSidebarView
-	public async loadVocabList(): Promise<VocabEntryFlat[]> {
+	public async loadVocabList(): Promise<VocabEntry[]> {
 		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
 		try {
 			const file = await this.app.vault.adapter.read(path);
@@ -586,7 +588,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	
 	public scrollToWordInActiveFile(word: string) {
 		const view = this.currentMarkdownView;
-		const mode = view.getMode();
+		const mode = view?.getMode?.() ?? "source"; // fallback to "source" if undefined
 
 		if (!view) {
 			console.warn("No active Markdown view");
@@ -612,7 +614,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			);
 		}
 		
-		for (const line of lines) {
+		for (const line of Array.from(lines)) {
 			if (line.textContent?.includes(word)) {
 				(line as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
 	

@@ -1,7 +1,7 @@
 {
 	"id": "zhongwen-reader",
 	"name": "Zhongwen Reader",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "This lightweight plugin helps you read Chinese more easily inside ObsidianMD with a CEDICT based hover-dictionary and vocabulary saving features.",
 	"author": "natipt",
