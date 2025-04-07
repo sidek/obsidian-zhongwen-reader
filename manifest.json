@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-zhongwen-reader",
+	"id": "zhongwen-reader",
 	"name": "Zhongwen Reader",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "CEDICT dictionary lookup of Chinese words on hover, mimicking the Zhongwen Chrome plugin. Supports easy creation of a vocab list and adding to a Spaced Repetitions deck.",
+	"description": "This lightweight plugin helps you read Chinese more easily inside ObsidianMD with a CEDICT based hover-dictionary and vocabulary saving features.",
 	"author": "natipt",
 	"authorUrl": "https://obsidian.md",
 	"fundingUrl": "https://obsidian.md/pricing",
