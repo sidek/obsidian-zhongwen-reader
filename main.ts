@@ -135,9 +135,11 @@ export default class MyPlugin extends Plugin {
 
 		this.registerDomEvent(document, "keydown", (event: KeyboardEvent) => {
 			if (event.key.toLowerCase() === "s" && this.activeWord && this.activeEntries) {
+				event.preventDefault();
+				event.stopPropagation();
 				this.addToVocab(this.activeWord, this.activeEntries);
 			}
-		});		
+		}); //capture phase		
 
 		this.addCommand({
 			id: "export-vocab-flashcards",
