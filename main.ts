@@ -53,7 +53,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-	
+		
 		// Load dictionary
 		const data = await this.loadDictionaryFile(`${this.app.vault.configDir}/plugins/${this.manifest.id}/cedict_ts.u8`);
     	this.loadCedictFromText(data);
@@ -80,7 +80,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 				event.stopPropagation();
 				this.addToVocab(this.activeWord, this.activeEntries);
 			}
-		}); //capture phase		
+		}, true); //capture phase		
 
 		this.addCommand({
 			id: "export-vocab-flashcards",
@@ -96,7 +96,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		this.addRibbonIcon("book-open", "Open Vocab Sidebar", async () => {
 			await this.activateView();
 		});
-		await this.activateView(); // TODO: make sure this always opens in the right sidebar
+		await this.activateView(); // TODO: make sure this always opens in the right sidebar		
 
 		// Change vocab sidebar when I change leaf
 		this.registerEvent(
