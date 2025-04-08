@@ -4,6 +4,7 @@
 	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "This lightweight plugin helps you read Chinese more easily with a CEDICT based hover-dictionary and vocabulary saving features.",
+	"styles": "styles.css",
 	"author": "natipt",
 	"authorUrl": "https://github.com/natipt",
 	"fundingUrl": "https://buymeacoffee.com/natipt",

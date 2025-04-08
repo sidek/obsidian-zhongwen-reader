@@ -58,62 +58,6 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		const data = await this.loadDictionaryFile(`${this.app.vault.configDir}/plugins/${this.manifest.id}/cedict_ts.u8`);
     	this.loadCedictFromText(data);
 
-		// Styles
-		const style = document.createElement("style");
-		style.id = "cedict-hover-style";
-		style.innerText = `
-		.cedict-hover-box {
-			position: absolute;
-			z-index: 0 !important;
-			background-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.3);
-			pointer-events: none;
-			border-radius: 3px;
-			transition: all 0.05s ease;
-		}
-		.cedict-line-hover {
-			background-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.3);
-			transition: background-color 0.3s ease;
-		}
-		.cm-line {
-			transition: all 0.5s ease;
-		}
-		.vocab-entry {
-			margin-bottom: 1rem;
-			padding-bottom: 0.5rem;
-			border-bottom: 1px solid var(--background-modifier-border);
-			cursor: pointer;
-		}
-		.vocab-word {
-			font-weight: bold;
-			font-size: 1.1em;
-		}
-		.vocab-pinyin {
-			font-style: italic;
-			color: var(--text-muted);
-			margin-top: 2px;
-		}
-		.vocab-defs {
-			margin-top: 4px;
-			color: var(--text-normal);
-			font-size: 0.95em;
-			line-height: 1.4;
-		}
-		.cedict-tooltip {
-			position: absolute;
-			padding: 6px 10px;
-			background: var(--background-secondary);
-			color: var(--text-normal);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 6px;
-			box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-			white-space: pre-line;
-			z-index: 10000;
-			pointer-events: none;
-			display: none;
-		}
-		`;
-		document.head.appendChild(style);
-
 		this.hoverBoxEl = document.createElement("div");
 		this.hoverBoxEl.className = "cedict-hover-box";
 		document.body.appendChild(this.hoverBoxEl);
@@ -212,10 +156,6 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			this.tooltipEl.remove();
 			this.tooltipEl = null;
 		}
-
-		// Clean up styles
-		const styleEl = document.getElementById("cedict-hover-style");
-		if (styleEl) styleEl.remove();	
 	}
 
 	async loadSettings() {

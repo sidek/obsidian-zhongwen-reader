@@ -1,8 +1,49 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
+.cedict-hover-box {
+    position: absolute;
+    z-index: 0 !important;
+    background-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.3);
+    pointer-events: none;
+    border-radius: 3px;
+    transition: all 0.05s ease;
+}
+.cedict-line-hover {
+    background-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.3);
+    transition: background-color 0.3s ease;
+}
+.cm-line {
+    transition: all 0.5s ease;
+}
+.vocab-entry {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--background-modifier-border);
+    cursor: pointer;
+}
+.vocab-word {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+.vocab-pinyin {
+    font-style: italic;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.vocab-defs {
+    margin-top: 4px;
+    color: var(--text-normal);
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+.cedict-tooltip {
+    position: absolute;
+    padding: 6px 10px;
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    white-space: pre-line;
+    z-index: 10000;
+    pointer-events: none;
+    display: none;
+}
