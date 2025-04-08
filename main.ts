@@ -55,7 +55,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		await this.loadSettings();
 	
 		// Load dictionary
-		const data = await this.loadDictionaryFile(`.obsidian/plugins/${this.manifest.id}/cedict_ts.u8`);
+		const data = await this.loadDictionaryFile(`${this.app.vault.configDir}/plugins/${this.manifest.id}/cedict_ts.u8`);
     	this.loadCedictFromText(data);
 
 		// Styles
@@ -431,7 +431,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		}
 	}
 	private async addToVocab(word: string, entries: CedictEntry[]) {
-		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
+		const path = `${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`;
 	
 		let list: VocabEntry[] = [];
 	
@@ -495,7 +495,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 
 	private async exportVocabToFlashcards() {
-		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
+		const path = `${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`;
 		const outputPath = `Obsidian-Zhongwen-Reader-Vocab-Deck.md`; 
 	
 		let list: {
@@ -568,7 +568,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 	// needs to be accessed by VocabSidebarView
 	public async loadVocabList(): Promise<VocabEntry[]> {
-		const path = `.obsidian/plugins/${this.manifest.id}/vocab.json`;
+		const path = `${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`;
 		try {
 			const file = await this.app.vault.adapter.read(path);
 			return JSON.parse(file);
