@@ -96,8 +96,9 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		this.addRibbonIcon("book-open", "Open Vocab Sidebar", async () => {
 			await this.activateView();
 		});
-		await this.activateView(); // TODO: make sure this always opens in the right sidebar		
-
+		this.app.workspace.onLayoutReady(() => {
+			this.activateView();
+		});
 		// Change vocab sidebar when I change leaf
 		this.registerEvent(
 			this.app.workspace.on("active-leaf-change", () => {
