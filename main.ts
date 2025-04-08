@@ -674,7 +674,6 @@ class VocabSidebarView extends ItemView {
 			// wrapper.createEl("hr");
 
 			// Make wrapper clickable
-			wrapper.style.cursor = "pointer";
 			wrapper.onclick = () => {
 				this.plugin.scrollToWordInActiveFile(entry.simplified);
 			};
