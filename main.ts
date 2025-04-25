@@ -2,7 +2,7 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 
 const VIEW_TYPE_VOCAB_SIDEBAR = "vocab-sidebar";
 
-// This defines the structure for dictionary entries
+// Entries in loaded CEDICT
 interface CedictEntry {
 	traditional: string;
 	simplified: string;
@@ -10,19 +10,18 @@ interface CedictEntry {
 	definitions: string[];
   }
 
-// Remember to rename these classes and interfaces!
-
 interface ZhongwenReaderPluginSettings {
 	saveSentences: boolean;
 }
 
+// Entries in user vocab list .json
 interface VocabEntry {
 	simplified: string;
 	traditional: string;
 	pinyin: string;
 	definitions: string[];
 	addedAt: string;
-	exampleSentences?: string[]; // optional
+	exampleSentences?: string[]; 
 };
 
 const DEFAULT_SETTINGS: ZhongwenReaderPluginSettings = {
@@ -74,13 +73,19 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		this.hoverHandler = this.hoverHandlerChars.bind(this);
 		document.addEventListener("mousemove", this.hoverHandler);
 
-		this.registerDomEvent(document, "keydown", (event: KeyboardEvent) => {
-			if (event.key.toLowerCase() === "s" && this.activeWord && this.activeEntries) {
-				event.preventDefault();
-				event.stopPropagation();
-				this.addToVocab(this.activeWord, this.activeEntries);
+		this.addCommand({
+			id: "save-current-hovered-word",
+			name: "Save Hovered Word to Vocab List",
+			checkCallback: (checking: boolean) => {
+				if (this.activeWord && this.activeEntries) {
+					if (!checking) {
+						this.addToVocab(this.activeWord, this.activeEntries);
+					}
+					return true; // <- this makes it appear in palette
+				}
+				return false; // <- hides it when no hovered word
 			}
-		}, true); //capture phase		
+		});	
 
 		this.addCommand({
 			id: "export-vocab-flashcards",
