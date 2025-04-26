@@ -47,3 +47,17 @@
     pointer-events: none;
     display: none;
 }
+
+
+
+.hsk-highlight {
+    padding: 0 2px;
+    border-radius: 3px;
+}
+  
+.hsk-level-1 { background-color: rgba(135, 206, 250, 0.3); } /* light blue */
+.hsk-level-2 { background-color: rgba(144, 238, 144, 0.3); } /* light green */
+.hsk-level-3 { background-color: rgba(255, 255, 102, 0.3); } /* light yellow */
+.hsk-level-4 { background-color: rgba(255, 165, 0, 0.3); } /* light orange */
+.hsk-level-5 { background-color: rgba(255, 99, 71, 0.3); } /* tomato */
+.hsk-level-6 { background-color: rgba(186, 85, 211, 0.3); } /* purple */

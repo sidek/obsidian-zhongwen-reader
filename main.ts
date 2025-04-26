@@ -138,6 +138,34 @@ export default class ZhongwenReaderPlugin extends Plugin {
 				}
 			})
 		);
+
+		await this.loadHSKVocab();
+
+		this.addCommand({
+			id: "highlight-hsk-words",
+			name: "Highlight HSK Words in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.highlightHSKWords(view.editor);
+				return true;
+			  }
+			  return false;
+			}
+		  });
+		  
+		  this.addCommand({
+			id: "clear-hsk-highlights",
+			name: "Clear HSK Highlights in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.clearHSKHighlights(view.editor);
+				return true;
+			  }
+			  return false;
+			}
+		  });		  
 	}
 
 	onunload() {
@@ -203,6 +231,44 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			}
 		}
 	};
+
+	private hskVocab: Map<number, Set<string>> = new Map();
+
+	async loadHSKVocab() {
+		const path = `.obsidian/plugins/${this.manifest.id}/hsk-vocab.json`;
+		try {
+			const content = await this.app.vault.adapter.read(path);
+			const data = JSON.parse(content);
+
+			for (const [level, words] of Object.entries(data)) {
+			this.hskVocab.set(Number(level), new Set(words as string[]));
+			}
+		} catch (err) {
+			console.error("Failed to load HSK vocab:", err);
+		}
+	}
+
+	private highlightHSKWords(editor: Editor) {
+		const text = editor.getValue();
+		let modifiedText = text;
+		
+		this.hskVocab.forEach((words, level) => {
+			words.forEach(word => {
+			const escapedWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+			const regex = new RegExp(escapedWord, "g");
+			modifiedText = modifiedText.replace(regex, (match) => 
+				`<span class="hsk-highlight hsk-level-${level}">${match}</span>`
+			);
+			});
+		});
+		
+		editor.setValue(modifiedText);
+	}
+	clearHSKHighlights(editor: Editor) {
+		const text = editor.getValue();
+		const cleaned = text.replace(/<span class="hsk-highlight hsk-level-\d+">(.+?)<\/span>/g, '$1');
+		editor.setValue(cleaned);
+	}
 
 	private hoverHandlerChars = (event: MouseEvent) => {
 		const el = event.target as HTMLElement;
