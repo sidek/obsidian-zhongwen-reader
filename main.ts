@@ -276,18 +276,19 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		editor.setValue(modifiedText);
 	}
 	
+	
 	private clearHSKHighlights(editor: Editor) {
 		let text = editor.getValue();
 		
 		// Keep clearing nested spans until there are no more
 		let previous;
 		do {
-		  previous = text;
-		  text = text.replace(/<span class="hsk-highlight hsk-level-\d+">([^<>]*)<\/span>/g, '$1');
+			previous = text;
+			text = text.replace(/<span class="hsk-highlight hsk-level-\d+">([^<>]*)<\/span>/g, '$1');
 		} while (text !== previous);
-	  
+		
 		editor.setValue(text);
-	  }
+	}
 	  
 
 	private hoverHandlerChars = (event: MouseEvent) => {
