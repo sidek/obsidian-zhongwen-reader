@@ -249,16 +249,17 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 
 	private highlightHSKWords(editor: Editor) {
+		this.clearHSKHighlights(editor);
+
 		const text = editor.getValue();
 		let modifiedText = text;
 		
 		this.hskVocab.forEach((words, level) => {
 			words.forEach(word => {
-			const escapedWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-			const regex = new RegExp(escapedWord, "g");
-			modifiedText = modifiedText.replace(regex, (match) => 
-				`<span class="hsk-highlight hsk-level-${level}">${match}</span>`
-			);
+				const regex = new RegExp(word, "g");
+				modifiedText = modifiedText.replace(regex, (match) => 
+					`<span class="hsk-highlight hsk-level-${level}">${match}</span>`
+				);
 			});
 		});
 		
