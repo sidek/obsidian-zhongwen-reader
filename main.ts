@@ -751,7 +751,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 				
 					setTimeout(() => {
 						line.classList.remove("cedict-line-hover");
-					}, 5000);
+					}, 1500);
 				}, 100);
 	
 				// Restore focus
