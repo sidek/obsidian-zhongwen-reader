@@ -249,27 +249,46 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 
 	private highlightHSKWords(editor: Editor) {
-		this.clearHSKHighlights(editor);
-
-		const text = editor.getValue();
-		let modifiedText = text;
-		
-		this.hskVocab.forEach((words, level) => {
-			words.forEach(word => {
-				const regex = new RegExp(word, "g");
-				modifiedText = modifiedText.replace(regex, (match) => 
-					`<span class="hsk-highlight hsk-level-${level}">${match}</span>`
-				);
+		const rawText = editor.getValue().replace(/<span class="hsk-highlight hsk-level-\d+">(.+?)<\/span>/g, '$1');
+	  
+		let modifiedText = rawText;
+	  
+		const alreadyHighlighted = new Set<string>();
+	  
+		// Highlight, but only once, and prefer lower levels
+		const levels = Array.from(this.hskVocab.keys()).sort((a, b) => Number(a) - Number(b));
+	  
+		for (const level of levels) {
+		  const words = this.hskVocab.get(level) ?? [];
+		  for (const word of words) {
+			if (alreadyHighlighted.has(word)) continue;
+	  
+			const escapedWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+			const regex = new RegExp(escapedWord, "g");
+	  
+			modifiedText = modifiedText.replace(regex, (match) => {
+			  alreadyHighlighted.add(match);
+			  return `<span class="hsk-highlight hsk-level-${level}">${match}</span>`;
 			});
-		});
-		
+		  }
+		}
+	  
 		editor.setValue(modifiedText);
 	}
-	clearHSKHighlights(editor: Editor) {
-		const text = editor.getValue();
-		const cleaned = text.replace(/<span class="hsk-highlight hsk-level-\d+">(.+?)<\/span>/g, '$1');
-		editor.setValue(cleaned);
-	}
+	
+	private clearHSKHighlights(editor: Editor) {
+		let text = editor.getValue();
+		
+		// Keep clearing nested spans until there are no more
+		let previous;
+		do {
+		  previous = text;
+		  text = text.replace(/<span class="hsk-highlight hsk-level-\d+">([^<>]*)<\/span>/g, '$1');
+		} while (text !== previous);
+	  
+		editor.setValue(text);
+	  }
+	  
 
 	private hoverHandlerChars = (event: MouseEvent) => {
 		const el = event.target as HTMLElement;
