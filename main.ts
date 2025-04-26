@@ -152,9 +152,81 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			  }
 			  return false;
 			}
-		  });
+		});
+		this.addCommand({
+			id: "highlight-hsk-1-words",
+			name: "Highlight HSK 1 Words in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.highlightHSKWords(view.editor, 1);
+				return true;
+			  }
+			  return false;
+			}
+		});
+		this.addCommand({
+			id: "highlight-hsk-2-words",
+			name: "Highlight HSK 2 Words in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.highlightHSKWords(view.editor, 2);
+				return true;
+			  }
+			  return false;
+			}
+		});
+		this.addCommand({
+			id: "highlight-hsk-3-words",
+			name: "Highlight HSK 3 Words in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.highlightHSKWords(view.editor, 3);
+				return true;
+			  }
+			  return false;
+			}
+		});
+		this.addCommand({
+			id: "highlight-hsk-4-words",
+			name: "Highlight HSK 4 Words in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.highlightHSKWords(view.editor, 4);
+				return true;
+			  }
+			  return false;
+			}
+		});
+		this.addCommand({
+			id: "highlight-hsk-5-words",
+			name: "Highlight HSK 5 Words in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.highlightHSKWords(view.editor, 5);
+				return true;
+			  }
+			  return false;
+			}
+		});
+		this.addCommand({
+			id: "highlight-hsk-6-words",
+			name: "Highlight HSK 6 Words in Current Note",
+			checkCallback: (checking) => {
+			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			  if (view && view.editor) {
+				if (!checking) this.highlightHSKWords(view.editor, 6);
+				return true;
+			  }
+			  return false;
+			}
+		});
 		  
-		  this.addCommand({
+		this.addCommand({
 			id: "clear-hsk-highlights",
 			name: "Clear HSK Highlights in Current Note",
 			checkCallback: (checking) => {
@@ -165,7 +237,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			  }
 			  return false;
 			}
-		  });		  
+		});		  
 	}
 
 	onunload() {
@@ -248,15 +320,37 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		}
 	}
 
-	private highlightHSKWords(editor: Editor) {
-		const rawText = editor.getValue().replace(/<span class="hsk-highlight hsk-level-\d+">(.+?)<\/span>/g, '$1');
+	private highlightHSKWords(editor: Editor, specificLevel?: number) {
+		const text = editor.getValue();
 	  
-		let modifiedText = rawText;
+		// let modifiedText = rawText;
+		let modifiedText: string;
+		let alreadyHighlighted = new Set<string>();
+		if (specificLevel === undefined) {
+			// No specific level: wipe existing highlights
+			modifiedText = text.replace(/<span class="hsk-highlight hsk-level-\d+">(.+?)<\/span>/g, '$1');
+			// modifiedText = rawText;
+			// alreadyHighlighted = new Set<string>();
+			this.clearHSKHighlights(editor);
+		} else {
+			// Specific level: keep existing highlights
+			modifiedText = text;
+	
+			// Fill set with already-highlighted words
+			const matches = modifiedText.matchAll(/<span class="hsk-highlight hsk-level-\d+">(.+?)<\/span>/g);
+			for (const match of matches) {
+				if (match[1]) alreadyHighlighted.add(match[1]);
+			}
+		}
 	  
-		const alreadyHighlighted = new Set<string>();
+		// const alreadyHighlighted = new Set<string>();
 	  
 		// Highlight, but only once, and prefer lower levels
-		const levels = Array.from(this.hskVocab.keys()).sort((a, b) => Number(a) - Number(b));
+		// const levels = Array.from(this.hskVocab.keys()).sort((a, b) => Number(a) - Number(b));
+		const levels = specificLevel 
+			? [specificLevel] 
+			: Array.from(this.hskVocab.keys()).sort((a, b) => Number(a) - Number(b));
+		console.log("levels", levels);
 	  
 		for (const level of levels) {
 		  const words = this.hskVocab.get(level) ?? [];
