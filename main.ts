@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, normalizePath } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, normalizePath, TFile } from 'obsidian';
 
 const VIEW_TYPE_VOCAB_SIDEBAR = "vocab-sidebar";
 
@@ -703,14 +703,21 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		}
 	}
 
-	// Do this so sidebar doesnt get double rendered when I switch leaves
+	// Refresh timer so sidebar doesnt get double rendered when I switch leaves
 	public triggerSidebarRefresh() {
 		if (this.refreshTimer) window.clearTimeout(this.refreshTimer);
-
-		this.refreshTimer = window.setTimeout(() => {
-			this.refreshVocabSidebar?.();
+	
+		this.refreshTimer = window.setTimeout(async () => {
+			const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_VOCAB_SIDEBAR);
+			for (const leaf of leaves) {
+				const view = leaf.view;
+				if (view instanceof VocabSidebarView) {
+					await view.renderSidebar();
+				}
+			}
 		}, 100);
 	}
+	
 	
 	public scrollToWordInActiveFile(word: string) {
 		const view = this.currentMarkdownView;

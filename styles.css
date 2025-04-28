@@ -86,3 +86,12 @@
     font-weight: 700;
     color: #c742c4;
 }
+
+
+
+.zh-hidden {
+	display: none;
+}
+.zh-visible {
+	display: block;
+}
