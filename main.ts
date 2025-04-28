@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, normalizePath } from 'obsidian';
 
 const VIEW_TYPE_VOCAB_SIDEBAR = "vocab-sidebar";
 
@@ -307,7 +307,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	private hskVocab: Map<number, Set<string>> = new Map();
 
 	async loadHSKVocab() {
-		const path = `.obsidian/plugins/${this.manifest.id}/hsk-vocab.json`;
+		const path = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/hsk-vocab.json`);
 		try {
 			const content = await this.app.vault.adapter.read(path);
 			const data = JSON.parse(content);
@@ -350,7 +350,6 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		const levels = specificLevel 
 			? [specificLevel] 
 			: Array.from(this.hskVocab.keys()).sort((a, b) => Number(a) - Number(b));
-		console.log("levels", levels);
 	  
 		for (const level of levels) {
 		  const words = this.hskVocab.get(level) ?? [];
@@ -558,7 +557,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		}
 	}
 	private async addToVocab(word: string, entries: CedictEntry[]) {
-		const path = `${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`;
+		const path = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
 	
 		let list: VocabEntry[] = [];
 	
@@ -622,7 +621,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 
 	private async exportVocabToFlashcards() {
-		const path = `${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`;
+		const path = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
 		const outputPath = `Obsidian-Zhongwen-Reader-Vocab-Deck.md`; 
 	
 		let list: {
@@ -695,7 +694,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 	// needs to be accessed by VocabSidebarView
 	public async loadVocabList(): Promise<VocabEntry[]> {
-		const path = `${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`;
+		const path = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
 		try {
 			const file = await this.app.vault.adapter.read(path);
 			return JSON.parse(file);
