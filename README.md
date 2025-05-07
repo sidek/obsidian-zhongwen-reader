@@ -13,7 +13,7 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://o
 
 > ⚠️ **Warning:** As of now, the example sentences are saved into vocab.json but are not used in flashcard generation or shown in the plugin sidebar. Upcoming features will make use of them.
 
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=000000)](https://www.buymeacoffee.com/natipt)
+[![Buy me a coffee!](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/natipt)
 
 # 🧾 Data & Storage
 Installing the plugin stores the CC-CEDICT dictionary (https://cc-cedict.org/wiki/) as a .u8 file with path .obsidian/plugins/zhongwen-reader/cedict_ts.u8.
