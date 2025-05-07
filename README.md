@@ -4,10 +4,11 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://o
 > ⚠️ **Warning:** If cloning this repository, make sure the folder inside your .obsidian/plugins is .obsidian/plugins/zhongwen-reader and not .obsidian/plugins/obsidian-zhongwen-reader.
 
 # ✨ Features
-- 🔍 Hover lookup: When this plugin is enabled, instantly see simplified, traditional, pinyin, and definitions (from CC-CEDICT dictionary) in a tooltip popup when hovering over Chinese words in your markdown editor or preview mode. 
-- 📥 Save vocab: Press S while hovering to save a word to your personal vocab list
-- 🧠 Example sentence capture: If the setting is enabled, automatically saves the sentence where you found the word into your vocab list as an example sentence
-- 📋 Sidebar view: See a list of vocab words used in the current note and navigate to the word within the note with a click
+- 🔍 Hover lookup: When this plugin is enabled, instantly see simplified, traditional, pinyin, and definitions (from CC-CEDICT dictionary) in a tooltip popup when hovering over Chinese words in your markdown editor or preview mode.
+- 💡 HSK Highlighting: Use the command palette to toggle document-wide color-coded highlighting of vocabulary words from any of the HSK exams
+- 📥 Save vocab: Select "Save Hovered Word to Vocab List" in the command palette while hovering to save a word to your personal vocab list
+- 🧠 Example sentence capture: If the setting is enabled, automatically saves the sentence where you found the word into your vocab list as an example sentence. If you find the same vocab entry within a different sentence/context, the command "Save Hovered Word to Vocab List" will add the sentence as an additional example to the existing vocab entry.
+- 📋 Sidebar view: See a list of vocab words used in the current note and navigate to the word within the note with a click.
 - 🗃️ Spaced repetitions deck generation: Generate flashcards for the obsidian spaced repetitions plugin from your vocab list.
 
 > ⚠️ **Warning:** As of now, the example sentences are saved into vocab.json but are not used in flashcard generation or shown in the plugin sidebar. Upcoming features will make use of them.
