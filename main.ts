@@ -825,7 +825,7 @@ class VocabSidebarView extends ItemView {
 			: view?.contentEl.textContent ?? "";
 
 		const matchingVocab = vocabList.filter(entry =>
-			currentFileText.includes(entry.simplified)
+			currentFileText.includes(entry.simplified) || currentFileText.includes(entry.traditional)
 		);
 
 		container.createEl("h3", {
