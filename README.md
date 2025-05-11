@@ -36,12 +36,30 @@ Each entry includes:
 ```
 # 🛠️ Usage
 - Hover over any Chinese word in edit or preview mode to view its meaning.
-- Press S to save the word (and its surrounding sentence) to your vocab list.
+- Use the command palette to save the word (and its surrounding sentence) to your vocab list.
 - Click the 📘 icon in the sidebar to view all saved words in the current note.
 - Use the command palette to run “Export Vocab to Flashcards” and generate an .md deck.
+- Use the command palette to toggle highlighting of HSK words in a given note.
 
 # ⚙️ Settings
 - Save sentence: Automatically capture the sentence a word appears in when saving vocab.
+
+# Manual installation
+This is not yet an official obsidian plugin, it is currently under review. To install it manually
+1. **Download the latest release**:
+  Visit the releases page and download the following files from the latest version:
+  - `main.js`
+  - `manifest.json`
+  - `styles.css`
+  - `cedict_ts.u8`
+2. **Locate your obsidian plugins folder**:
+  Inside your vault folder, locate the plugins folder. Usually this is `.obsidian/plugins/`. `.obsidian` will be hidden in your file browser by default. On Mac, you can show it in Finder by pressing Command + Shift + . (period).
+3. **Create a plugin folder**:
+  Create a folder named `zhongwen-reader` inside `.obsidian/plugins/`. It is important that the folder is named `zhongwen-reader` and **not** `obsidian-zhongwen-reader`.
+4. **Copy files into the plugin folder**:
+  Place the downloaded files inside `zhongwen-reader/`.
+5. **Enable the plugin**:
+  In obsidian, go to Settings -> Community plugins, find Zhongwen Reader, and toggle it on.
 
 # 📦 Coming soon
 - [ ] Export to Anki .apkg
