@@ -66,5 +66,5 @@ This is not yet an official obsidian plugin, it is currently under review. To in
 - [ ] Better vocab highlights when scrolling to a vocab word from the sidebar
 - [ ] Toggle vocab sidebar on/off
 - [ ] Database view of vocab list
-- [ ] HSK data for vocab words, highlighting similar to du-chinese app
+- [x] HSK data for vocab words, highlighting similar to du-chinese app
 - [ ] Native spaced repetitions within Zhongwen Reader with cloze support
