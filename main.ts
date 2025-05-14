@@ -38,10 +38,10 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	private tooltipEl: HTMLDivElement | null = null;
 	public refreshVocabSidebar: (() => void) | null = null;
 
-	// not update vocab list on every keystroke
+	// In order to not update vocab list on every keystroke
 	private refreshTimer: number | null = null;
 
-	// save currentMarkdownView so vocab list doesnt disappear when i click on vocab sidebar
+	// Save currentMarkdownView so vocab list doesnt disappear when user clicks on vocab sidebar
 	public currentMarkdownView: MarkdownView | null = null;
 
 	// For if the user wants to store the current sentence as an example
@@ -54,11 +54,11 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		await this.loadSettings();
 
 		// Download dictionary if needed
-		const pluginFolder = `${this.app.vault.configDir}/plugins/${this.manifest.id}`; // should i add vault base path? 
+		const pluginFolder = `${this.app.vault.configDir}/plugins/${this.manifest.id}`; 
 		const dictPath = pluginFolder + '/cedict_ts.u8';
 
-		const fileExists = await this.app.vault.adapter.exists(dictPath);
-		if (!fileExists) {
+		const cedictExists = await this.app.vault.adapter.exists(dictPath);
+		if (!cedictExists) {
 			new Notice(`Downloading CEDICT...`);
 
 			try {
@@ -70,6 +70,13 @@ export default class ZhongwenReaderPlugin extends Plugin {
 				console.error("Failed to download cedict_ts.u8", err);
 				new Notice("Failed to download CEDICT.");
 			}
+		}
+
+		// Create vocab.json if needed
+		const vocabPath = pluginFolder + '/vocab.json';
+		const vocabExists = await this.app.vault.adapter.exists(vocabPath);
+		if (!vocabExists) {
+			await this.app.vault.adapter.write(vocabPath, '');
 		}
 		
 		// Load dictionary
@@ -86,7 +93,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		document.body.appendChild(this.tooltipEl);
 
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
+		// Add settings tab
 		this.addSettingTab(new ZhongwenReaderSettingTab(this.app, this));	
 
 		this.hoverHandler = this.hoverHandlerChars.bind(this);
@@ -94,15 +101,15 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 		this.addCommand({
 			id: "save-current-hovered-word",
-			name: "Save Hovered Word to Vocab List",
+			name: "Save hovered word to vocab list.",
 			checkCallback: (checking: boolean) => {
 				if (this.activeWord && this.activeEntries) {
 					if (!checking) {
 						this.addToVocab(this.activeWord, this.activeEntries);
 					}
-					return true; // <- this makes it appear in palette
+					return true; // show in palette when a word is hovered
 				}
-				return false; // <- hides it when no hovered word
+				return false; // hide from palette when no word is hovered
 			}
 		});	
 
@@ -135,7 +142,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			})
 		);
 		
-		// Change vocab sidebar when I edit leaf
+		// Change vocab sidebar when user edits leaf
 		this.registerEvent(
 			this.app.workspace.on("editor-change", () => {
 				if (this.refreshTimer) window.clearTimeout(this.refreshTimer);
@@ -162,7 +169,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 		this.addCommand({
 			id: "highlight-hsk-words",
-			name: "Highlight HSK Words in Current Note",
+			name: "Highlight all HSK words in current note..",
 			checkCallback: (checking) => {
 			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			  if (view && view.editor) {
@@ -174,7 +181,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "highlight-hsk-1-words",
-			name: "Highlight HSK 1 Words in Current Note",
+			name: "Highlight HSK 1 words in current note.",
 			checkCallback: (checking) => {
 			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			  if (view && view.editor) {
@@ -186,7 +193,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "highlight-hsk-2-words",
-			name: "Highlight HSK 2 Words in Current Note",
+			name: "Highlight HSK 2 words in current note.",
 			checkCallback: (checking) => {
 			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			  if (view && view.editor) {
@@ -198,7 +205,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "highlight-hsk-3-words",
-			name: "Highlight HSK 3 Words in Current Note",
+			name: "Highlight HSK 3 words in current note.",
 			checkCallback: (checking) => {
 			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			  if (view && view.editor) {
@@ -210,7 +217,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "highlight-hsk-4-words",
-			name: "Highlight HSK 4 Words in Current Note",
+			name: "Highlight HSK 4 words in current note.",
 			checkCallback: (checking) => {
 			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			  if (view && view.editor) {
@@ -222,7 +229,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "highlight-hsk-5-words",
-			name: "Highlight HSK 5 Words in Current Note",
+			name: "Highlight HSK 5 words in current note.",
 			checkCallback: (checking) => {
 			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			  if (view && view.editor) {
@@ -234,7 +241,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "highlight-hsk-6-words",
-			name: "Highlight HSK 6 Words in Current Note",
+			name: "Highlight HSK 6 words in current note.",
 			checkCallback: (checking) => {
 			  const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			  if (view && view.editor) {
