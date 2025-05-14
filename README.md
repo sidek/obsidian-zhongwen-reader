@@ -16,8 +16,9 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://o
 [![Buy me a coffee!](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/natipt)
 
 # 🧾 Data & Storage
-Installing the plugin stores the CC-CEDICT dictionary (https://cc-cedict.org/wiki/) as a .u8 file with path .obsidian/plugins/zhongwen-reader/cedict_ts.u8.
-Saved vocab is stored in .obsidian/plugins/zhongwen-reader/vocab.json.
+If you install this plugin through Obsidian or BRAT, you must be connected to wifi **the first time you activate the plugin** so that it can download the open source Chinese-English dictionary CEDICT. After this initial download, the plugin will work entirely offline and can be deactivated and reactivated at will without wifi. Installing the plugin downloads and stores the CC-CEDICT dictionary (https://cc-cedict.org/wiki/) as a `.u8` file with path `.obsidian/plugins/zhongwen-reader/cedict_ts.u8`. This file is 9.7MB.
+
+Saved vocab is stored in `.obsidian/plugins/zhongwen-reader/vocab.json`.
 Each entry includes:
 ```json
 {
@@ -34,6 +35,7 @@ Each entry includes:
   ]
 }
 ```
+You can manually delete these files at any time. A future release will add the option to clean up these files from the Settings menu.
 # 🛠️ Usage
 - Hover over any Chinese word in edit or preview mode to view its meaning.
 - Use the command palette to save the word (and its surrounding sentence) to your vocab list.
