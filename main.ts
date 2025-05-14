@@ -76,7 +76,12 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		const vocabPath = pluginFolder + '/vocab.json';
 		const vocabExists = await this.app.vault.adapter.exists(vocabPath);
 		if (!vocabExists) {
-			await this.app.vault.adapter.write(vocabPath, '');
+			try {
+				await this.app.vault.adapter.write(vocabPath, '');
+			}
+			catch(err) {
+				console.error("Failed to create vocab.json", err);
+			}
 		}
 		
 		// Load dictionary
