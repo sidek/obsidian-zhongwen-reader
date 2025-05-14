@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, normalizePath, TFile } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, normalizePath, TFile, requestUrl } from 'obsidian';
 
 const VIEW_TYPE_VOCAB_SIDEBAR = "vocab-sidebar";
 
@@ -52,9 +52,28 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		// Download dictionary if needed
+		const pluginFolder = `${this.app.vault.configDir}/plugins/${this.manifest.id}`; // should i add vault base path? 
+		const dictPath = pluginFolder + '/cedict_ts.u8';
+
+		const fileExists = await this.app.vault.adapter.exists(dictPath);
+		if (!fileExists) {
+			new Notice(`Downloading CEDICT...`);
+
+			try {
+				const url = 'https://raw.githubusercontent.com/natipt/obsidian-zhongwen-reader/main/cedict_ts.u8';
+				const res = await requestUrl({ url });
+				await this.app.vault.adapter.writeBinary(dictPath, res.arrayBuffer);
+				new Notice(`Download complete!`);
+			} catch(err) {
+				console.error("Failed to download cedict_ts.u8", err);
+				new Notice("Failed to download CEDICT.");
+			}
+		}
 		
 		// Load dictionary
-		const data = await this.loadDictionaryFile(`${this.app.vault.configDir}/plugins/${this.manifest.id}/cedict_ts.u8`);
+		const data = await this.loadDictionaryFile(dictPath);
     	this.loadCedictFromText(data);
 
 		this.hoverBoxEl = document.createElement("div");
