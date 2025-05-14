@@ -70,3 +70,5 @@ This is not yet an official obsidian plugin, it is currently under review. To in
 - [ ] Database view of vocab list
 - [x] HSK data for vocab words, highlighting similar to du-chinese app
 - [ ] Native spaced repetitions within Zhongwen Reader with cloze support
+- [ ] Better tooltip sizing/positioning
+- [ ] User customizability in tooltip layout/contents and sidebar layout/contents
