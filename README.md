@@ -15,8 +15,18 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://o
 
 [![Buy me a coffee!](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/natipt)
 
+# 🐛 Reporting Bugs
+If you encounter a bug or something isn't working as expected:
+1. Open an [Issue on GitHub](https://github.com/natipt/obsidian-zhongwen-reader/issues)
+2. Include the following details:
+  - A clear description of the issue
+  - Steps to reproduce it, if possible
+  - Your system info (Obsidian version, OS, plugin version)
+  - Any relevant screenshots or error messages
+This helps me investigate and fix things faster—thank you!
+
 # 🧾 Data & Storage
-If you install this plugin through Obsidian or BRAT, you must be connected to wifi **the first time you activate the plugin** so that it can download the open source Chinese-English dictionary CEDICT. After this initial download, the plugin will work entirely offline and can be deactivated and reactivated at will without wifi. Installing the plugin downloads and stores the CC-CEDICT dictionary (https://cc-cedict.org/wiki/) as a `.u8` file with path `.obsidian/plugins/zhongwen-reader/cedict_ts.u8`. This file is 9.7MB.
+If you install this plugin through Obsidian or BRAT, you must be connected to wifi **the first time you activate the plugin** so that it can download the open source Chinese-English dictionary CEDICT and the file hsk-vocab.json containing the vocabulary from each HSK exam. You can view both files in the github repository. After this initial download, the plugin will work entirely offline and can be deactivated and reactivated at will without wifi. Installing the plugin downloads and stores the CC-CEDICT dictionary (https://cc-cedict.org/wiki/) as a `.u8` file with path `.obsidian/plugins/zhongwen-reader/cedict_ts.u8`. This file is 9.7MB.
 
 Saved vocab is stored in `.obsidian/plugins/zhongwen-reader/vocab.json`.
 Each entry includes:
