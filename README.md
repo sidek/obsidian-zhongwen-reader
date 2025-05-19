@@ -10,7 +10,7 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://o
 - 🧠 Example sentence capture: If the setting is enabled, automatically saves the sentence where you found the word into your vocab list as an example sentence. If you find the same vocab entry within a different sentence/context, the command "Save Hovered Word to Vocab List" will add the sentence as an additional example to the existing vocab entry.
 - 📋 Sidebar view: See a list of vocab words used in the current note and navigate to the word within the note with a click.
 - 🗃️ Spaced repetitions deck generation: Generate flashcards for the obsidian spaced repetitions plugin from your vocab list.
-- 🗣️ Bopomofo (注音) support, contributed by [@wongjustin99](https://github.com/wongjustin99).
+- 🗣️ Bopomofo (注音) support, contributed by [@wongjustin99](https://github.com/wongjustin99). (This feature is currently available on the github repository but not yet on the Obsidian release--that's coming soon).
 
 > ⚠️ **Warning:** As of now, the example sentences are saved into vocab.json but are not used in flashcard generation or shown in the plugin sidebar. Upcoming features will make use of them.
 
