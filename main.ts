@@ -72,6 +72,22 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			}
 		}
 
+		// Download HSK Vocab json if needed
+		const hskPath = pluginFolder + '/hsk-vocab.json';
+		const hskExists = await this.app.vault.adapter.exists(hskPath);
+		if (!hskExists) {
+			new Notice("Downloading HSK vocab...");
+			try {
+				const hskUrl = 'https://raw.githubusercontent.com/natipt/obsidian-zhongwen-reader/main/hsk-vocab.json';
+				const hskRes = await requestUrl({ url: hskUrl });
+				await this.app.vault.adapter.write(hskPath, hskRes.text);
+				new Notice('HSK vocab download complete!');
+			} catch (err) {
+				console.error("Failed to download hsk-vocab.json.");
+				new Notice('Failed to download HSK vocab.');
+			}
+		}
+
 		// Create vocab.json if needed
 		const vocabPath = pluginFolder + '/vocab.json';
 		const vocabExists = await this.app.vault.adapter.exists(vocabPath);
