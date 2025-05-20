@@ -1,38 +1,36 @@
 # Zhongwen Reader
-Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian (https://obsidian.md) that makes it easy to read Chinese text and build your vocabulary, all from within your notes. Originally based on obsidian-sample-plugin by the Obsidian team.
+Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian that makes it easy to read Chinese text and build your vocabulary, all from within your notes.
 
-> ⚠️ **Warning:** If cloning this repository, make sure the folder inside your .obsidian/plugins is .obsidian/plugins/zhongwen-reader and not .obsidian/plugins/obsidian-zhongwen-reader.
-
-# ✨ Features
-- 🔍 Hover lookup: When this plugin is enabled, instantly see simplified, traditional, pinyin, and definitions (from CC-CEDICT dictionary) in a tooltip popup when hovering over Chinese words in your markdown editor or preview mode.
-- 💡 HSK Highlighting: Use the command palette to toggle document-wide color-coded highlighting of vocabulary words from any of the HSK exams
-- 📥 Save vocab: Select "Save Hovered Word to Vocab List" in the command palette while hovering to save a word to your personal vocab list
-- 🧠 Example sentence capture: If the setting is enabled, automatically saves the sentence where you found the word into your vocab list as an example sentence. If you find the same vocab entry within a different sentence/context, the command "Save Hovered Word to Vocab List" will add the sentence as an additional example to the existing vocab entry.
-- 📋 Sidebar view: See a list of vocab words used in the current note and navigate to the word within the note with a click.
-- 🗃️ Spaced repetitions deck generation: Generate flashcards for the obsidian spaced repetitions plugin from your vocab list.
-- 🗣️ Bopomofo (注音) support, contributed by [@wongjustin99](https://github.com/wongjustin99). (This feature is currently available on the github repository but not yet on the Obsidian release--that's coming soon).
-
-> ⚠️ **Warning:** As of now, the example sentences are saved into vocab.json but are not used in flashcard generation or shown in the plugin sidebar. Upcoming features will make use of them.
+> ⚠️ **Installation Note:** If cloning this repo, the folder in `.obsidian/plugins` must be named `zhongwen-reader`, not `obsidian-zhongwen-reader`.
 
 [![Buy me a coffee!](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/natipt)
 
-# 🐛 Reporting Bugs and ⭐️ Requesting Features
-If you encounter a bug or something isn't working as expected:
-1. Open an [Issue on GitHub](https://github.com/natipt/obsidian-zhongwen-reader/issues)
-2. Include the following details:
-  - A clear description of the issue
-  - Steps to reproduce it, if possible
-  - Your system info (Obsidian version, OS, plugin version)
-  - Any relevant screenshots or error messages
-This helps me investigate and fix things faster—thank you!
+# ✨ Features
+- 🔍 **Hover Dictionary:** Instantly see simplified, traditional, pinyin, and definitions (from CC-CEDICT) on hover.
+  - 🗣️ **Bopomofo Support (注音):** Contributed by [@wongjustin99](https://github.com/wongjustin99). (Coming to Community Plugins soon!)
+- 💡 **HSK Highlighting:** Toggle color-coded vocab highlighting by HSK level.
+- 📥 **Save Words:** Use the command palette to save hovered words to a vocab list.
+  - 🧠 **Sentence Capture:** Optionally save example sentences when adding vocab.
+- 📋 **Sidebar View:** See vocab from the current note and jump to word locations.
+- 🗃️ **Flashcard Export:** Export saved vocab as markdown flashcards for the Spaced Repetition plugin.
 
-If you'd like to request a feature, please open a GitHub issue with a title starting with Feature Request: followed by a short, informative summary. In the issue description, clearly explain the functionality you're hoping to see in Obsidian and why you need it—include your use case and any relevant context or examples.
+> ⚠️ **Note:** Example sentences are saved to `vocab.json` but not yet used in flashcards or sidebar. Support coming soon.
 
+# 🛠️ How to Use
+- Hover over any Chinese word (in Edit or Preview mode) to see a popup.
+- Save a word from the hover popup using the command palette.
+- Open the 📘 Sidebar View to browse words in the current note.
+- Use the palette to Export Vocab to Flashcards or toggle HSK highlights.
+
+# ⚙️ Settings
+- Save Sentence: Automatically capture the sentence where the word appears.
+  
 # 🧾 Data & Storage
-If you install this plugin through Obsidian or BRAT, you must be connected to wifi **the first time you activate the plugin** so that it can download the open source Chinese-English dictionary CEDICT and the file hsk-vocab.json containing the vocabulary from each HSK exam. You can view both files in the github repository. After this initial download, the plugin will work entirely offline and can be deactivated and reactivated at will without wifi. Installing the plugin downloads and stores the CC-CEDICT dictionary (https://cc-cedict.org/wiki/) as a `.u8` file with path `.obsidian/plugins/zhongwen-reader/cedict_ts.u8`. This file is 9.7MB.
-
-Saved vocab is stored in `.obsidian/plugins/zhongwen-reader/vocab.json`.
-Each entry includes:
+- Must be connected to wifi on first activation **only**, the plugin downloads the following files and subsequently functions offline:
+  - `cedict_ts.u8` – Chinese-English dictionary (9.7MB, from CC-CEDICT)
+  - `hsk-vocab.json` – HSK word lists (54KB)
+- Saved vocab is stored in `/plugins/zhongwen-reader/vocab.json`
+- Example entry
 ```json
 {
   "simplified": "弯月",
@@ -48,23 +46,26 @@ Each entry includes:
   ]
 }
 ```
-You can manually delete these files at any time. A future release will add the option to clean up these files from the Settings menu.
-# 🛠️ Usage
-- Hover over any Chinese word in edit or preview mode to view its meaning.
-- Use the command palette to save the word (and its surrounding sentence) to your vocab list.
-- Click the 📘 icon in the sidebar to view all saved words in the current note.
-- Use the command palette to run “Export Vocab to Flashcards” and generate an .md deck.
-- Use the command palette to toggle highlighting of HSK words in a given note.
+You can delete these files manually anytime. If you delete `vocab.json` your saved vocab will be lost. A future release will add cleanup options in settings.
 
-# ⚙️ Settings
-- Save sentence: Automatically capture the sentence a word appears in when saving vocab.
+# 🐛 Bugs & ⭐ Feature Requests
+Found a bug?
+1. Open a [GitHub issue](https://github.com/natipt/obsidian-zhongwen-reader/issues)
+2. Include:
+  - What happened
+  - How to reproduce it
+  - Your system info (Obsidian version, OS, plugin version)
+  - Screenshots or errors (if applicable)
+
+Want a feature?
+1. Open a GitHub issue with a title starting with Feature Request: and a short summary. In the description:
+2. Explain the functionality you'd like to see
+3. Include your use case and why it would help
 
 # 📦 Coming soon
 - [ ] Export to Anki .apkg
-- [ ] Better vocab highlights when scrolling to a vocab word from the sidebar
-- [ ] Toggle vocab sidebar on/off
-- [ ] Database view of vocab list
-- [x] HSK data for vocab words, highlighting similar to du-chinese app
-- [ ] Native spaced repetitions within Zhongwen Reader with cloze support
-- [ ] Better tooltip sizing/positioning
-- [ ] User customizability in tooltip layout/contents and sidebar layout/contents
+- [ ] Toggle vocab sidebar
+- [ ] Database-style vocab view
+- [ ] Built-in spaced repetition with cloze support
+- [ ] Improved tooltip layout and customization
+- [x] HSK word data with highlights (like Du Chinese)
