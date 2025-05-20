@@ -858,7 +858,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 	
 	
-	public scrollToWordInActiveFile(word: string) {
+	public scrollToWordInActiveFile(entry: VocabEntry) {
 		const view = this.currentMarkdownView;
 		const mode = view?.getMode?.() ?? "source"; // fallback to "source" if undefined
 
@@ -887,7 +887,8 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		}
 		
 		for (const line of Array.from(lines)) {
-			if (line.textContent?.includes(word)) {
+			const currentText = line.textContent;
+			if (currentText && (currentText.includes(entry.simplified) || currentText.includes(entry.traditional))) {
 				(line as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
 	
 				// Highlight the line briefly, delayed by 100 to allow DOM to scroll first
@@ -1011,7 +1012,7 @@ class VocabSidebarView extends ItemView {
 
 			// Make wrapper clickable
 			wrapper.onclick = () => {
-				this.plugin.scrollToWordInActiveFile(entry.simplified);
+				this.plugin.scrollToWordInActiveFile(entry);
 			};
 		}
 	}	
