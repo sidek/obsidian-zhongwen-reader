@@ -43,6 +43,9 @@
     border-radius: 6px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     white-space: pre-line;
+    /* word-wrap: break-word;
+    overflow-wrap:break-word; */
+    max-width:750px;
     z-index: 10000;
     pointer-events: none;
     display: none;
