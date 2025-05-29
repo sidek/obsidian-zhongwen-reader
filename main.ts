@@ -206,6 +206,12 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			callback: () => this.exportVocabToFlashcards()
 		});
 
+		this.addCommand({
+			id: "export-vocab-csv",
+			name: "Export Vocab to Anki-compatible CSV",
+			callback: () => this.exportVocabToCSV()
+		});
+
 		this.registerView(
 			VIEW_TYPE_VOCAB_SIDEBAR,
 			(leaf) => new VocabSidebarView(leaf, this)
@@ -783,12 +789,44 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			return `${entry.simplified}::${defs}`;
 		});
 	
-		const content = `#ChineseVocab\n\n${lines.join("\n\n")}`;
+		const content = `#flashcards\n#ChineseVocab\n\n${lines.join("\n\n")}`;
 	
 		await this.app.vault.adapter.write(outputPath, content);
 	
 		new Notice("Exported vocab to flashcard deck!");
 	}	
+
+	// Anki supports CSV import
+	private async exportVocabToCSV() {
+		const path = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
+		const outputPath = `Obsidian-Zhongwen-Reader-Vocab-Deck.csv`; 
+	
+		let list: {
+			simplified: string;
+			traditional: string;
+			definitions: string[];
+			addedAt: string;
+		}[] = [];
+	
+		try {
+			const file = await this.app.vault.adapter.read(path);
+			list = JSON.parse(file);
+		} catch (e) {
+			new Notice("No vocab list found.");
+			return;
+		}
+	
+		const lines: string[] = list.map(entry => {
+			const defs = entry.definitions.join("; ");
+			return `${entry.simplified};"${defs}"`;
+		});
+	
+		const content = `${lines.join("\n\n")}`;
+	
+		await this.app.vault.adapter.write(outputPath, content);
+	
+		new Notice("Exported vocab to Obsidian-Zhongwen-Reader-Vocab-Deck.csv!");
+	}
 
 	private extractSentenceFromTextAtOffset(text: string, offset: number, word: string): string {
 		if (!this.settings.saveSentences) return "";

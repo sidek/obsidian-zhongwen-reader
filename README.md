@@ -21,6 +21,7 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian that makes
 - Save a word from the hover popup using the command palette.
 - Open the 📘 Sidebar View to browse words in the current note.
 - Use the palette to Export Vocab to Flashcards or toggle HSK highlights.
+- For Anki export, use the palette to Export Vocab to CSV. Anki can import this CSV file with field separator set to semicolon. 
 
 # ⚙️ Settings
 - Save Sentence: Automatically capture the sentence where the word appears.
