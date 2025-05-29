@@ -12,7 +12,7 @@ Zhongwen Reader is a lightweight hover dictionary plugin for Obsidian that makes
 - 📥 **Save Words:** Use the command palette to save hovered words to a vocab list.
   - 🧠 **Sentence Capture:** Optionally save example sentences when adding vocab.
 - 📋 **Sidebar View:** See vocab from the current note and jump to word locations.
-- 🗃️ **Flashcard Export:** Export saved vocab as markdown flashcards for the Spaced Repetition plugin.
+- 🗃️ **Flashcard Export:** Export saved vocab as markdown flashcards for the Spaced Repetition plugin or CSV flashcards for Anki import.
 
 > ⚠️ **Note:** Example sentences are saved to `vocab.json` but not yet used in flashcards or sidebar. Support coming soon.
 
@@ -64,7 +64,7 @@ Want a feature?
 3. Include your use case and why it would help
 
 # 📦 Coming soon
-- [ ] Export to Anki .apkg
+- [x] Export to Anki
 - [ ] Toggle vocab sidebar
 - [ ] Database-style vocab view
 - [ ] Built-in spaced repetition with cloze support
