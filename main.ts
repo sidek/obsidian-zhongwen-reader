@@ -12,6 +12,7 @@ interface CedictEntry {
 
 interface ZhongwenReaderPluginSettings {
 	saveSentences: boolean;
+	japaneseModeOn: boolean; 
 }
 
 // Entries in user vocab list .json
@@ -25,7 +26,8 @@ interface VocabEntry {
 };
 
 const DEFAULT_SETTINGS: ZhongwenReaderPluginSettings = {
-	saveSentences: false
+	saveSentences: false;
+	japaneseModeOn: false;
 }
 
 // derived from https://gist.github.com/ttempe/4010474
@@ -165,9 +167,25 @@ export default class ZhongwenReaderPlugin extends Plugin {
 				console.error("Failed to create vocab.json", err);
 			}
 		}
+
+		// If Japanese mode is on, download JEDICT 
+		const JdictPath = pluginFolder + '/jedict.json';
+		const jedictExists = await this.app.vault.adapter.exists(JdictPath);
+		if (!jedictExists && this.settings.japaneseModeOn) {
+			new Notice("Downloading JEDICT...");
+			try {
+				const jedictUrl = 'https://raw.githubusercontent.com/natipt/obsidian-zhongwen-reader/main/jedict.json';
+				const jedictRes = await requestUrl({ url: jedictUrl });
+				await this.app.vault.adapter.write(JdictPath, jedictRes.text);
+				new Notice('JEDICT download complete!');
+			} catch (err) {
+				console.error("Failed to download jedict.json", err);
+				new Notice('Failed to download JEDICT.');
+			}
+		}
 		
 		// Load dictionary
-		const data = await this.loadDictionaryFile(dictPath);
+		const data = await this.loadDictionaryFile(dictPath, JdictPath);
     	this.loadCedictFromText(data);
 
 		this.hoverBoxEl = document.createElement("div");
@@ -391,8 +409,13 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	private async loadDictionaryFile(fileName: string): Promise<string> {
-		const arrayBuffer = await this.app.vault.adapter.readBinary(fileName);
+	private async loadDictionaryFile(fileName: string, JfileName: string): Promise<string> {
+		// if Japanese mode is on, load JEDICT instead
+		var dictFile = fileName;
+		if (this.settings.japaneseModeOn) {
+			dictFile = JfileName;
+		}
+		const arrayBuffer = await this.app.vault.adapter.readBinary(dictFile);
 		const decoder = new TextDecoder("utf-8");
 		return decoder.decode(arrayBuffer);
 	}
@@ -535,7 +558,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			return;
 		}
 
-		// Only proceed if the hovered character is Chinese
+		// Only proceed if the hovered character is Chinese (includes Japanese kanji)
 		const chineseChar = /[\u4e00-\u9fff]/;
 		if (!chineseChar.test(text[offset])) {
 			this.hideHoverBox();
@@ -634,6 +657,9 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 
 	public processPinyin(pinyin: string): { accentedPinyin: string; bopomofo: string } {
+		if (this.settings.japaneseModeOn) {
+			return { accentedPinyin: pinyin, bopomofo: pinyin }; // In Japanese mode, we just return the text as is
+		}
 		const toneMap: Record<string, string[]> = {
 			"a": ["ā", "á", "ǎ", "à", "a"],
 			"e": ["ē", "é", "ě", "è", "e"],
@@ -1077,6 +1103,17 @@ class ZhongwenReaderSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.saveSentences = value;
 					await this.plugin.saveSettings();
+		}));
+
+		new Setting(containerEl)
+			.setName("Japanese Mode")
+			.setDesc("Enables a Japanese dictionary instead of a Chinese one. Requires reload to take effect.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.japaneseModeOn)
+				.onChange(async (value) => {
+					this.plugin.settings.japaneseModeOn = value;
+					await this.plugin.saveSettings();
+					new Notice("Japanese mode toggled. Please restart the plugin for changes to take effect.");
 		}));
 	}
 }
