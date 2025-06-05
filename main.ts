@@ -1,99 +1,38 @@
+// this is a fork of Zhongwen Reader by natipt 
+// which instead does Japanese rather than Chinese 
+// this fork will always have a strict subset of the features of Zhongwen Reader
+// as the development model is simply for me to port features from Zhongwen Reader to this plugin as they are added.
+// the internal codebase will continue to use the samee naming conventions as Zhongwen Reader. 
+
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, normalizePath, TFile, requestUrl } from 'obsidian';
 
 const VIEW_TYPE_VOCAB_SIDEBAR = "vocab-sidebar";
 
+// JVER: traditional = kanji, simplified = kana, pinyin = romaji, definitions = definitions 
 // Entries in loaded CEDICT
 interface CedictEntry {
-	traditional: string;
-	simplified: string;
-	pinyin: string;
+	character: string;
+	readings_on: string[];
+	readings_kun: string[];
 	definitions: string[];
   }
 
 interface ZhongwenReaderPluginSettings {
 	saveSentences: boolean;
-	japaneseModeOn: boolean; 
 }
 
 // Entries in user vocab list .json
 interface VocabEntry {
-	simplified: string;
-	traditional: string;
-	pinyin: string;
+	character: string;
+	readings_on: string[];
+	readings_kun: string[];
 	definitions: string[];
 	addedAt: string;
 	exampleSentences?: string[]; 
 };
 
 const DEFAULT_SETTINGS: ZhongwenReaderPluginSettings = {
-	saveSentences: false;
-	japaneseModeOn: false;
-}
-
-// derived from https://gist.github.com/ttempe/4010474
-const pinyinToBopomofoMasterList: ReadonlyArray<[string, string]> = (() => {
-    const initialReplacements: Array<[string, string]> = [
-        ["yu", "u:"], ["ü", "u:"], ["v", "u:"],
-        ["you", "ㄧㄡ"], ["yi", "i"], ["y", "i"],
-        ["wong", "ㄨㄥ"], ["wu", "u"], ["w", "u"]
-    ];
-
-    const mainTable: Array<[string, string]> = [
-        // Special cases
-        ["ju", "ㄐㄩ"], ["qu", "ㄑㄩ"], ["xu", "ㄒㄩ"],
-        ["zhi", "ㄓ"], ["chi", "ㄔ"], ["shi", "ㄕ"], ["ri", "ㄖ"],
-        ["zi", "ㄗ"], ["ci", "ㄘ"], ["si", "ㄙ"],
-        ["r5", "ㄦ"],
-
-        // Initials
-        ["b", "ㄅ"], ["p", "ㄆ"], ["m", "ㄇ"], ["f", "ㄈ"],
-        ["d", "ㄉ"], ["t", "ㄊ"], ["n", "ㄋ"], ["l", "ㄌ"],
-        ["g", "ㄍ"], ["k", "ㄎ"], ["h", "ㄏ"],
-        ["j", "ㄐ"], ["q", "ㄑ"], ["x", "ㄒ"],
-        ["zh", "ㄓ"], ["ch", "ㄔ"], ["sh", "ㄕ"], ["r", "ㄖ"],
-        ["z", "ㄗ"], ["c", "ㄘ"], ["s", "ㄙ"],
-
-        // Finals
-        ["a", "ㄚ"], ["o", "ㄛ"], ["e", "ㄜ"], ["ê", "ㄝ"],
-        ["i", "ㄧ"], ["u", "ㄨ"], ["u:", "ㄩ"], // u: is for ü
-
-        ["ai", "ㄞ"], ["ei", "ㄟ"], ["ao", "ㄠ"], ["ou", "ㄡ"],
-        ["ia", "ㄧㄚ"], ["iao", "ㄧㄠ"], ["ie", "ㄧㄝ"], ["iu", "ㄧㄡ"],
-        ["ua", "ㄨㄚ"], ["uai", "ㄨㄞ"], ["ue", "ㄩㄝ"], ["u:e", "ㄩㄝ"],
-        ["ui", "ㄨㄟ"], ["uo", "ㄨㄛ"],
-
-        ["an", "ㄢ"], ["en", "ㄣ"], ["in", "ㄧㄣ"], ["un", "ㄨㄣ"], ["u:n", "ㄩㄣ"],
-        ["ang", "ㄤ"], ["eng", "ㄥ"], ["ing", "ㄧㄥ"], ["ong", "ㄨㄥ"],
-        ["ian", "ㄧㄢ"], ["iang", "ㄧㄤ"], ["iong", "ㄩㄥ"],
-        ["uan", "ㄨㄢ"], ["uang", "ㄨㄤ"],
-
-        ["er", "ㄦ"],
-
-        // Tones
-        ["1", ""], ["2", "ˊ"], ["3", "ˇ"], ["4", "ˋ"], ["5", "˙"]
-    ];
-
-    const combined = [...initialReplacements, ...mainTable];
-    combined.sort((a, b) => b[0].length - a[0].length);
-
-    const uniqueMap = new Map<string, string>();
-    for (const [key, value] of combined) {
-        if (!uniqueMap.has(key)) {
-            uniqueMap.set(key, value);
-        }
-    }
-    return Array.from(uniqueMap.entries());
-})();
-
-function convertSinglePinyinSyllableToBopomofo(pinyinSyllable: string): string {
-    if (!pinyinSyllable) return "";
-    let result = pinyinSyllable.toLowerCase();
-
-    for (const [pinyinPattern, bopomofoReplacement] of pinyinToBopomofoMasterList) {
-        const patternRegex = new RegExp(pinyinPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        result = result.replace(patternRegex, bopomofoReplacement);
-    }
-    return result;
+	saveSentences: false
 }
 
 export default class ZhongwenReaderPlugin extends Plugin {
@@ -122,24 +61,29 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		await this.loadSettings();
 
 		// Download dictionary if needed
+		// JVER : cedict --> jedict 
 		const pluginFolder = `${this.app.vault.configDir}/plugins/${this.manifest.id}`; 
-		const dictPath = pluginFolder + '/cedict_ts.u8';
+		const dictPath = pluginFolder + '/jedict_ts.u8';
 
 		const cedictExists = await this.app.vault.adapter.exists(dictPath);
 		if (!cedictExists) {
-			new Notice(`Downloading CEDICT...`);
+			new Notice(`Downloading JEDICT...`);
 
+			// TODO: modify this to download jedict instead of cedict
 			try {
 				const url = 'https://raw.githubusercontent.com/natipt/obsidian-zhongwen-reader/main/cedict_ts.u8';
 				const res = await requestUrl({ url });
 				await this.app.vault.adapter.writeBinary(dictPath, res.arrayBuffer);
 				new Notice(`Download complete!`);
 			} catch(err) {
-				console.error("Failed to download cedict_ts.u8", err);
-				new Notice("Failed to download CEDICT.");
+				console.error("Failed to download jedict_ts.u8", err);
+				new Notice("Failed to download JEDICT.");
 			}
 		}
 
+// TODO : JLPT words 
+
+/*
 		// Download HSK Vocab json if needed
 		const hskPath = pluginFolder + '/hsk-vocab.json';
 		const hskExists = await this.app.vault.adapter.exists(hskPath);
@@ -156,6 +100,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			}
 		}
 
+*/
 		// Create vocab.json if needed
 		const vocabPath = pluginFolder + '/vocab.json';
 		const vocabExists = await this.app.vault.adapter.exists(vocabPath);
@@ -167,27 +112,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 				console.error("Failed to create vocab.json", err);
 			}
 		}
-
-		// If Japanese mode is on, download JEDICT 
-		const JdictPath = pluginFolder + '/jedict.json';
-		const jedictExists = await this.app.vault.adapter.exists(JdictPath);
-		if (!jedictExists && this.settings.japaneseModeOn) {
-			new Notice("Downloading JEDICT...");
-			try {
-				const jedictUrl = 'https://raw.githubusercontent.com/natipt/obsidian-zhongwen-reader/main/jedict.json';
-				const jedictRes = await requestUrl({ url: jedictUrl });
-				await this.app.vault.adapter.write(JdictPath, jedictRes.text);
-				new Notice('JEDICT download complete!');
-			} catch (err) {
-				console.error("Failed to download jedict.json", err);
-				new Notice('Failed to download JEDICT.');
-			}
-		}
 		
-		// Load dictionary
-		const data = await this.loadDictionaryFile(dictPath, JdictPath);
-    	this.loadCedictFromText(data);
-
 		this.hoverBoxEl = document.createElement("div");
 		this.hoverBoxEl.className = "cedict-hover-box";
 		document.body.appendChild(this.hoverBoxEl);
@@ -276,6 +201,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			})
 		);
 
+//TODO: HSK --> JLPT 
 		await this.loadHSKVocab();
 
 		this.addCommand({
@@ -377,6 +303,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		});		  
 	}
 
+
 	onunload() {
 		document.removeEventListener("mousemove", this.hoverHandler);
 		if (this.activeHighlight) {
@@ -409,43 +336,37 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	private async loadDictionaryFile(fileName: string, JfileName: string): Promise<string> {
-		// if Japanese mode is on, load JEDICT instead
-		var dictFile = fileName;
-		if (this.settings.japaneseModeOn) {
-			dictFile = JfileName;
-		}
-		const arrayBuffer = await this.app.vault.adapter.readBinary(dictFile);
+	private async loadDictionaryFile(fileName: string): Promise<string> {
+		const arrayBuffer = await this.app.vault.adapter.readBinary(fileName);
 		const decoder = new TextDecoder("utf-8");
 		return decoder.decode(arrayBuffer);
 	}
+	// TODO: parse jedict 
 	private parseCedictLine(line: string): CedictEntry | null {
-		const match = line.match(/^(\S+)\s+(\S+)\s+\[(.+?)\]\s+\/(.+)\//);
+    	const match = line.match(/^(\S+)\s+\\(.+?)\\\s+\[(.+?)\]\s+\/(.+)\//);		
 		if (!match) return null;
-	
-		const [, trad, simp, pinyin, defs] = match;
-		return {
-		  traditional: trad,
-		  simplified: simp,
-		  pinyin,
-		  definitions: defs.split('/')
-		};
-	  }
-	
+    	const [, character, readings_on, readings_kun, defs] = match;
+    	return {
+     		character,
+        	readings_on: readings_on.trim().split(/\s+/),
+        	readings_kun: readings_kun.trim().split(/\s+/),
+        	definitions: defs.split('/')
+    	};
+	}
+
 	private loadCedictFromText(cedictText: string) {
 	const lines = cedictText.split('\n');
 		for (const line of lines) {
 			if (line.startsWith('#') || line.trim() === '') continue;
 			const entry = this.parseCedictLine(line);
 			if (entry) {
-				[entry.traditional, entry.simplified].forEach((form) => {
-					if (!this.cedictMap.has(form)) this.cedictMap.set(form, []);
-					this.cedictMap.get(form)!.push(entry);
-				});
-			}
-		}
+				if (!this.cedictMap.has(entry.character)) this.cedictMap.set(entry.character, []);
+					this.cedictMap.get(entry.character)!.push(entry);
+			};
+		};
 	};
 
+	// TODO: HSK --> JLPT 
 	private hskVocab: Map<number, Set<string>> = new Map();
 
 	async loadHSKVocab() {
@@ -604,7 +525,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			this.hoverBoxEl.style.display = "none";
 		}
 	}
-	
+	// TODO: add dictionaries that aren't kanji only
 	private getForwardMatchedWord(text: string, offset: number): { word: string; end: number } | null {
 		const maxWordLen = 5;
 		const substr = text.slice(offset, offset + maxWordLen);
@@ -629,7 +550,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			this.tooltipEl.style.display = "none";
 			return;
 		}
-
+		/*
 		// Remove duplicate entries - do I need this? 
 		const seen = new Set<string>();
 		const uniqueEntries = entries.filter(entry => {
@@ -638,13 +559,16 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			seen.add(id);
 			return true;
 		});
+		*/
+		const uniqueEntries = entries; 
+		// TODO: remove duplicates if needed in kanji-compatible way?
 
 		this.activeWord = word;
 		this.activeEntries = uniqueEntries;
-
+		// return the first on readings as a start
 		const text = uniqueEntries.map(entry => {
-			const pinyinInfo = this.processPinyin(entry.pinyin);
-			return `${entry.simplified} ${entry.simplified !== entry.traditional ? entry.traditional : ""} (${pinyinInfo.accentedPinyin} / ${pinyinInfo.bopomofo})\n${entry.definitions.join('; ')}`;
+			const pinyinInfo = this.processKana(entry.readings_on[0]);
+			return pinyinInfo.romaji_reading;
 		}).join('\n\n');
 
 		this.tooltipEl.innerText = text;
@@ -655,71 +579,50 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 		this.tooltipEl.style.display = "block";
 	}
-
-	public processPinyin(pinyin: string): { accentedPinyin: string; bopomofo: string } {
-		if (this.settings.japaneseModeOn) {
-			return { accentedPinyin: pinyin, bopomofo: pinyin }; // In Japanese mode, we just return the text as is
+// TODO: do digraphs more elegantly 
+	public processKana(reading: string): {kana_reading: string, romaji_reading: string} {
+		const kanaMap: Record<string, string> = {
+			// hiragana 
+			"あ": "a", "い": "i", "う": "u", "え": "e", "お": "o",
+			"か": "ka", "き": "ki", "く": "ku", "け": "ke", "こ": "ko",
+			"さ": "sa", "し": "shi", "す": "su", "せ": "se", "そ": "so",
+			"た": "ta", "ち": "chi", "つ": "tsu", "て": "te", "と": "to",
+			"な": "na", "に": "ni", "ぬ": "nu", "ね": "ne", "の": "no",
+			"は": "ha", "ひ": "hi", "ふ": "fu", "へ": "he", "ほ": "ho",
+			"ま": "ma", "み": "mi", "む": "mu", "め": "me", "も": "mo",
+			"や": "ya", "ゆ": "yu", "よ": "yo",
+			"ら": "ra", "り": "ri", "る": "ru", "れ": "re", "ろ": "ro",
+			"わ": "wa", "を": "wo", "ん": "n",
+			"が": "ga", "ぎ": "gi", "ぐ": "gu", "げ": "ge", "ご": "go",
+			"ざ": "za", "じ": "ji", "ず": "zu", "ぜ": "ze", "ぞ": "zo",
+			"だ": "da", "ぢ": "ji", "づ": "zu", "で": "de", "ど": "do",
+			"ば": "ba", "び": "bi", "ぶ": "bu", "べ": "be", "ぼ": "bo",
+			"ぱ": "pa", "ぴ": "pi", "ぷ": "pu", "ぺ": "pe", "ぽ": "po",
+			// katakana 
+			"ア": "a", "イ": "i", "ウ": "u", "エ": "e", "オ": "o",
+			"カ": "ka", "キ": "ki", "ク": "ku", "ケ": "ke", "コ": "ko",
+			"サ": "sa", "シ": "shi", "ス": "su", "セ": "se", "ソ": "so",
+			"タ": "ta", "チ": "chi", "ツ": "tsu", "テ": "te", "ト": "to",
+			"ナ": "na", "ニ": "ni", "ヌ": "nu", "ネ": "ne", "ノ": "no",
+			"ハ": "ha", "ヒ": "hi", "フ": "fu", "ヘ": "he", "ホ": "ho",
+			"マ": "ma", "ミ": "mi", "ム": "mu", "メ": "me", "モ": "mo",
+			"ヤ": "ya", "ユ": "yu", "ヨ": "yo",
+			"ラ": "ra", "リ": "ri", "ル": "ru", "レ": "re", "ロ": "ro",
+			"ワ": "wa", "ヲ": "wo", "ン": "n",
+			"ガ": "ga", "ギ": "gi", "グ": "gu", "ゲ": "ge", "ゴ": "go",
+			"ザ": "za", "ジ": "ji", "ズ": "zu", "ゼ": "ze", "ゾ": "zo",
+			"ダ": "da", "ヂ": "ji", "ヅ": "zu", "デ": "de", "ド": "do",
+			"バ": "ba", "ビ": "bi", "ブ": "bu", "ベ": "be", "ボ": "bo",
+			"パ": "pa", "ピ": "pi", "プ": "pu", "ペ": "pe", "ポ": "po"
 		}
-		const toneMap: Record<string, string[]> = {
-			"a": ["ā", "á", "ǎ", "à", "a"],
-			"e": ["ē", "é", "ě", "è", "e"],
-			"i": ["ī", "í", "ǐ", "ì", "i"],
-			"o": ["ō", "ó", "ǒ", "ò", "o"],
-			"u": ["ū", "ú", "ǔ", "ù", "u"],
-			"ü": ["ǖ", "ǘ", "ǚ", "ǜ", "ü"]
-		};
-		const vowels = ["a", "o", "e", "i", "u", "ü"];
-
-		const syllables = pinyin.split(" ");
-		const accentedPinyinSyllables: string[] = [];
-		const bopomofoResultSyllables: string[] = [];
-
-		for (const pinyinSyllableWithTone of syllables) {
-			if (!pinyinSyllableWithTone) {
-				accentedPinyinSyllables.push("");
-				bopomofoResultSyllables.push("");
-				continue;
-			}
-
-			bopomofoResultSyllables.push(convertSinglePinyinSyllableToBopomofo(pinyinSyllableWithTone));
-
-			let toneNumber = 0;
-			const lastChar = pinyinSyllableWithTone[pinyinSyllableWithTone.length - 1];
-			if (lastChar >= '1' && lastChar <= '5') {
-				toneNumber = parseInt(lastChar);
-			}
-
-			let corePinyin = toneNumber ? pinyinSyllableWithTone.slice(0, -1) : pinyinSyllableWithTone;
-			
-			let corePinyinForAccenting = corePinyin.replace(/u:/g, "ü");
-			let syllableToReturnForAccent = corePinyinForAccenting;
-
-			if (toneNumber >= 1 && toneNumber <= 5) {
-				let vowelToReplaceOriginalLogic = "";
-				for (const v of vowels) {
-					if (corePinyinForAccenting.includes(v)) {
-						vowelToReplaceOriginalLogic = v;
-						break;
-					}
-				}
-
-				if (vowelToReplaceOriginalLogic && toneMap[vowelToReplaceOriginalLogic]) {
-					const accentedVowel = toneMap[vowelToReplaceOriginalLogic][toneNumber - 1];
-					try {
-						const regex = new RegExp(vowelToReplaceOriginalLogic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "(?!.*" + vowelToReplaceOriginalLogic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ")", "g");
-						syllableToReturnForAccent = corePinyinForAccenting.replace(regex, accentedVowel);
-					} catch (e) {
-						console.error("Regex error in processPinyin", e);
-					}
-				}
-			}
-			accentedPinyinSyllables.push(syllableToReturnForAccent);
+		const romaji_reading: string[] = [];
+		for (const character of reading) {
+			romaji_reading.push(kanaMap[character] || character); // fallback to original if not found
 		}
-
 		return {
-			accentedPinyin: accentedPinyinSyllables.join(" "),
-			bopomofo: bopomofoResultSyllables.join(" ")
-		};
+			kana_reading: reading,
+			romaji_reading: romaji_reading.join("")
+		}
 	}
 	
 	private hideTooltip() {
@@ -742,7 +645,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		const newSentence = (this.activeExampleSentence?.trim() === word ? "" : this.activeExampleSentence?.trim()) || "";
 		// I'm supposed to have a check earlier that turns "word" into "" but for some reason not working so I have ^
 		// Do i need the "" fallback?
-		const existingEntry = list.find(e => e.simplified === word);
+		const existingEntry = list.find(e => e.character === word);
 		if (existingEntry) {
 			// If sentence saving is on and we have a sentence...
 			if (this.settings.saveSentences && newSentence) {
@@ -772,9 +675,9 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		const rep = entries[0]; // representative entry (usually fine but the pinyin can change so i should handle that in the future)
 	
 		const newEntry: VocabEntry = {
-			simplified: rep.simplified,
-			traditional: rep.traditional,
-			pinyin: rep.pinyin, 
+			character: rep.character,
+			readings_on: rep.readings_on,
+			readings_kun: rep.readings_kun, 
 			definitions: uniqueDefs,
 			addedAt: new Date().toISOString(),
 			...(this.settings.saveSentences && this.activeExampleSentence
@@ -952,7 +855,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		
 		for (const line of Array.from(lines)) {
 			const currentText = line.textContent;
-			if (currentText && (currentText.includes(entry.simplified) || currentText.includes(entry.traditional))) {
+			if (currentText && currentText.includes(entry.character)) {
 				(line as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
 	
 				// Highlight the line briefly, delayed by 100 to allow DOM to scroll first
@@ -1029,7 +932,7 @@ class VocabSidebarView extends ItemView {
 			: view?.contentEl.textContent ?? "";
 
 		const matchingVocab = vocabList.filter(entry =>
-			currentFileText.includes(entry.simplified) || currentFileText.includes(entry.traditional)
+			currentFileText.includes(entry.character)
 		);
 
 		container.createEl("h3", {
@@ -1049,17 +952,15 @@ class VocabSidebarView extends ItemView {
 		for (const entry of matchingVocab) {
 			const wrapper = container.createEl("div", { cls: "vocab-entry" });
 	
-			// Title: simplified + traditional
+			// Title: character
 			wrapper.createEl("div", {
-				text: `${entry.simplified} ${entry.simplified !== entry.traditional ? "(" + entry.traditional + ")": ""}`,
+				text: `${entry.character}`,
 				cls: 'vocab-word'
 			});
 	
 			// Pinyin and Bopomofo
-			const pinyinInfo = this.plugin.processPinyin?.(entry.pinyin ?? "");
-			const pinyinDisplay = pinyinInfo
-				? `${pinyinInfo.accentedPinyin} / ${pinyinInfo.bopomofo}`
-				: (entry.pinyin ?? "");
+			const pinyinInfo = this.plugin.processKana?.(entry.readings_on.join(" ,") ?? "");
+			const pinyinDisplay = pinyinInfo.romaji_reading
 			wrapper.createEl("div", {
 				text: pinyinDisplay,
 				cls: 'vocab-pinyin'
@@ -1103,17 +1004,6 @@ class ZhongwenReaderSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.saveSentences = value;
 					await this.plugin.saveSettings();
-		}));
-
-		new Setting(containerEl)
-			.setName("Japanese Mode")
-			.setDesc("Enables a Japanese dictionary instead of a Chinese one. Requires reload to take effect.")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.japaneseModeOn)
-				.onChange(async (value) => {
-					this.plugin.settings.japaneseModeOn = value;
-					await this.plugin.saveSettings();
-					new Notice("Japanese mode toggled. Please restart the plugin for changes to take effect.");
 		}));
 	}
 }
