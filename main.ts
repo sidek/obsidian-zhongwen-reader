@@ -81,6 +81,9 @@ export default class ZhongwenReaderPlugin extends Plugin {
 			}
 		}
 
+		const dictText = await this.loadDictionaryFile(dictPath);
+		this.loadCedictFromText(dictText);
+
 // TODO : JLPT words 
 
 /*
@@ -343,11 +346,12 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}
 	// TODO: parse jedict 
 	private parseCedictLine(line: string): CedictEntry | null {
-    	const match = line.match(/^(\S+)\s+\\(.+?)\\\s+\[(.+?)\]\s+\/(.+)\//);		
-		if (!match) return null;
+    	// Example: 鮎 \デン ネン\ [あゆ なまず] /freshwater trout, smelt/
+    	const match = line.match(/^([\p{sc=Han}]+)\s+\\([\p{sc=Katakana}\s]+)\\\s+\[([\p{sc=Hiragana}\s]+)\]\s+\/(.+)\//u);
+   		if (!match) return null;
     	const [, character, readings_on, readings_kun, defs] = match;
-    	return {
-     		character,
+   		return {
+        	character,
         	readings_on: readings_on.trim().split(/\s+/),
         	readings_kun: readings_kun.trim().split(/\s+/),
         	definitions: defs.split('/')
@@ -544,42 +548,32 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	
 	private showTooltipForWord(word: string, x: number, y: number) {
 		if (!this.tooltipEl) return;
-	
+
 		const entries = this.cedictMap.get(word);
 		if (!entries || entries.length === 0) {
 			this.tooltipEl.style.display = "none";
 			return;
 		}
-		/*
-		// Remove duplicate entries - do I need this? 
-		const seen = new Set<string>();
-		const uniqueEntries = entries.filter(entry => {
-			const id = `${entry.traditional}-${entry.simplified}-${entry.pinyin}-${entry.definitions.join(",")}`;
-			if (seen.has(id)) return false;
-			seen.add(id);
-			return true;
-		});
-		*/
-		const uniqueEntries = entries; 
-		// TODO: remove duplicates if needed in kanji-compatible way?
+
+		const uniqueEntries = entries;
 
 		this.activeWord = word;
 		this.activeEntries = uniqueEntries;
-		// return the first on readings as a start
+
+		// Show kana, romaji, and definitions for each entry
 		const text = uniqueEntries.map(entry => {
 			const pinyinInfo = this.processKana(entry.readings_on[0]);
-			return pinyinInfo.romaji_reading;
+			return `${entry.readings_on.join(", ")} (${pinyinInfo.romaji_reading})\n${entry.definitions.join('; ')}`;
 		}).join('\n\n');
 
 		this.tooltipEl.innerText = text;
-		if (!this.hoverBoxEl) return; // Feel like I dont need this? 
+		if (!this.hoverBoxEl) return;
 		const hoverRect = this.hoverBoxEl.getBoundingClientRect();
 		this.tooltipEl.style.left = `${hoverRect.left + window.scrollX}px`;
-		this.tooltipEl.style.top = `${hoverRect.bottom + window.scrollY + 4}px`; // 4px padding
-
+		this.tooltipEl.style.top = `${hoverRect.bottom + window.scrollY + 4}px`;
 		this.tooltipEl.style.display = "block";
 	}
-// TODO: do digraphs more elegantly 
+	// TODO: do digraphs more elegantly 
 	public processKana(reading: string): {kana_reading: string, romaji_reading: string} {
 		const kanaMap: Record<string, string> = {
 			// hiragana 
@@ -960,7 +954,7 @@ class VocabSidebarView extends ItemView {
 	
 			// Pinyin and Bopomofo
 			const pinyinInfo = this.plugin.processKana?.(entry.readings_on.join(" ,") ?? "");
-			const pinyinDisplay = pinyinInfo.romaji_reading
+			const pinyinDisplay = pinyinInfo.kana_reading
 			wrapper.createEl("div", {
 				text: pinyinDisplay,
 				cls: 'vocab-pinyin'
