@@ -4,7 +4,7 @@ This is a first version of a lightweight hover dictionary plugin for Obsidian th
 
 This is a fork of the original [Zhongwen Reader](https://github.com/natipt/obsidian-zhongwen-reader) developed by [natipt](https://github.com/natipt/), for Japanese-language use rather than Chinese. For more details about the use of this plugin, see the Zhongwen Reader README.
 
-[![Buy natipt a coffee!](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/natipt)
+[Buy natipt a coffee!](https://ko-fi.com/natipt)
 
 This fork is an early version. All basic functionality is present, but the design and layout of the tooltip is not yet optimized for Japanese text. 
 
