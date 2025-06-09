@@ -27,7 +27,7 @@ interface VocabEntry {
 
 const DEFAULT_SETTINGS: ZhongwenReaderPluginSettings = {
 	saveSentences: false,
-	csvFolder: normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}`)
+	csvFolder: ""
 }
 
 // derived from https://gist.github.com/ttempe/4010474
@@ -124,6 +124,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		// Download dictionary if needed
 		const pluginFolder = `${this.app.vault.configDir}/plugins/${this.manifest.id}`; 
 		const dictPath = pluginFolder + '/cedict_ts.u8';
+
 
 		const cedictExists = await this.app.vault.adapter.exists(dictPath);
 		if (!cedictExists) {
@@ -769,6 +770,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 
 	private async exportVocabToFlashcards() {
 		const path = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
+
 		const outputPath = `Obsidian-Zhongwen-Reader-Vocab-Deck.md`; 
 	
 		let list: {
@@ -801,8 +803,20 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	// Anki supports CSV import
 	private async exportVocabToCSV(outputFolder: string ) {
 		const vocabPath = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
-		const outputPath = normalizePath(`${outputFolder}/Obsidian-Zhongwen-Reader-Vocab-Deck.csv`);s
-	
+		const folder = normalizePath(outputFolder);
+		// ensure the folder exists, create if not 
+		const folderExists = await this.app.vault.adapter.exists(folder);
+		if (!folderExists) {
+			try {
+				await this.app.vault.adapter.mkdir(folder);
+			} catch (e) {
+				new Notice(`Failed to create folder: ${folder}`);
+				console.error("Failed to create folder:", e);
+				return;
+			}
+		}
+		const outputPath = normalizePath(`${folder}/Obsidian-Zhongwen-Reader-Vocab-Deck.csv`);
+
 		let list: {
 			simplified: string;
 			traditional: string;
@@ -811,7 +825,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		}[] = [];
 	
 		try {
-			const file = await this.app.vault.adapter.read(path);
+			const file = await this.app.vault.adapter.read(vocabPath);
 			list = JSON.parse(file);
 		} catch (e) {
 			new Notice("No vocab list found.");
@@ -1083,23 +1097,15 @@ class ZhongwenReaderSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
     		.setName("CSV export folder")
-    		.setDesc("Set the folder where CSV exports are saved.")
+    		.setDesc("Set the folder where CSV exports are saved (relative to your vault, invalid paths will be saved to the vault root).")
     		.addText(text => text
-        	.setPlaceholder("e.g. MyExports")
+        	.setPlaceholder("")
        		.setValue(this.plugin.settings.csvFolder)
         	.onChange(async (value) => {
-        	    this.plugin.settings.csvFolder = normalizePath(value);
-				//check if folder exists, create if not 
-				const folderExists = await this.plugin.app.vault.adapter.exists(this.plugin.settings.csvFolder);
-				if (!folderExists) {
-					try {
-						await this.plugin.app.vault.createFolder(this.plugin.settings.csvFolder);
-					}
-					catch (err) {
-						console.error("Failed to create CSV export folder:", err);
-						new Notice('Failed to create CSV export folder.');
-					}
-				}
+				let input = value.trim().replace(/^[/\.]+/, "");
+				const normalized = normalizePath(input);
+		
+        	    this.plugin.settings.csvFolder = normalized 
             	await this.plugin.saveSettings();
         })
     );
