@@ -12,6 +12,7 @@ interface CedictEntry {
 
 interface ZhongwenReaderPluginSettings {
 	saveSentences: boolean;
+	csvFolder: string 
 }
 
 // Entries in user vocab list .json
@@ -25,7 +26,8 @@ interface VocabEntry {
 };
 
 const DEFAULT_SETTINGS: ZhongwenReaderPluginSettings = {
-	saveSentences: false
+	saveSentences: false,
+	csvFolder: normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}`)
 }
 
 // derived from https://gist.github.com/ttempe/4010474
@@ -209,7 +211,7 @@ export default class ZhongwenReaderPlugin extends Plugin {
 		this.addCommand({
 			id: "export-vocab-csv",
 			name: "Export Vocab to Anki-compatible CSV",
-			callback: () => this.exportVocabToCSV()
+			callback: () => this.exportVocabToCSV(this.settings.csvFolder)
 		});
 
 		this.registerView(
@@ -797,9 +799,9 @@ export default class ZhongwenReaderPlugin extends Plugin {
 	}	
 
 	// Anki supports CSV import
-	private async exportVocabToCSV() {
-		const path = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
-		const outputPath = `Obsidian-Zhongwen-Reader-Vocab-Deck.csv`; 
+	private async exportVocabToCSV(outputFolder: string ) {
+		const vocabPath = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/vocab.json`);
+		const outputPath = normalizePath(`${outputFolder}/Obsidian-Zhongwen-Reader-Vocab-Deck.csv`);s
 	
 		let list: {
 			simplified: string;
@@ -1078,5 +1080,29 @@ class ZhongwenReaderSettingTab extends PluginSettingTab {
 					this.plugin.settings.saveSentences = value;
 					await this.plugin.saveSettings();
 		}));
+
+		new Setting(containerEl)
+    		.setName("CSV export folder")
+    		.setDesc("Set the folder where CSV exports are saved.")
+    		.addText(text => text
+        	.setPlaceholder("e.g. MyExports")
+       		.setValue(this.plugin.settings.csvFolder)
+        	.onChange(async (value) => {
+        	    this.plugin.settings.csvFolder = normalizePath(value);
+				//check if folder exists, create if not 
+				const folderExists = await this.plugin.app.vault.adapter.exists(this.plugin.settings.csvFolder);
+				if (!folderExists) {
+					try {
+						await this.plugin.app.vault.createFolder(this.plugin.settings.csvFolder);
+					}
+					catch (err) {
+						console.error("Failed to create CSV export folder:", err);
+						new Notice('Failed to create CSV export folder.');
+					}
+				}
+            	await this.plugin.saveSettings();
+        })
+    );
+
 	}
 }
